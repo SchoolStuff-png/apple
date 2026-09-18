@@ -1,0 +1,1465 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Apple Harvest 3D - Host & Play Hub</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Three.js Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <!-- Google Font Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <style>
+        * {
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: manipulation;
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+        }
+
+        body, html {
+            width: 100vw;
+            height: 100vh;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background-color: #090d16;
+            color: #f3f4f6;
+        }
+
+        /* 16:9 / 4:3 Dynamic Centered Viewport Container */
+        #game-wrapper {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: radial-gradient(circle at center, #111827 0%, #030712 100%);
+        }
+
+        #viewport-container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            max-width: calc(100vh * (4 / 3));
+            max-height: calc(100vw * (3 / 4));
+            aspect-ratio: 4 / 3;
+            background-color: #000;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.8), 0 0 1px 1px rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        #canvas-container {
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+
+        canvas {
+            width: 100% !important;
+            height: 100% !important;
+            display: block;
+        }
+
+        /* Crosshair */
+        #crosshair {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 6px;
+            height: 6px;
+            background-color: rgba(255, 255, 255, 0.85);
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 10;
+            transition: transform 0.15s ease, background-color 0.15s ease;
+        }
+
+        #crosshair.hovering {
+            transform: translate(-50%, -50%) scale(2);
+            background-color: #ffffff;
+            box-shadow: 0 0 10px rgba(255, 255, 255, 0.9);
+        }
+
+        /* Glassmorphism Overlays */
+        .glass-panel {
+            background: rgba(15, 23, 42, 0.75);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+        }
+
+        .glass-card {
+            background: rgba(30, 41, 59, 0.5);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        /* Chat Overlay Scrollbar */
+        .custom-scroll::-webkit-scrollbar {
+            width: 4px;
+        }
+        .custom-scroll::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.2);
+        }
+        .custom-scroll::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 4px;
+        }
+
+        /* Color Picker Radio Active Outline */
+        .color-option input:checked + div {
+            ring: 3px #10b981;
+            transform: scale(1.1);
+        }
+    </style>
+</head>
+<body>
+
+    <div id="game-wrapper">
+        <div id="viewport-container">
+            <!-- 3D WebGL Canvas Target -->
+            <div id="canvas-container"></div>
+
+            <!-- In-Game Interactive HUD -->
+            <div id="hud-layer" class="absolute inset-0 pointer-events-none p-5 flex flex-col justify-between z-10 hidden">
+                <!-- Top HUD Bar -->
+                <div class="flex items-center justify-between">
+                    <div class="glass-panel px-4 py-2 rounded-xl flex items-center gap-4 text-white font-semibold">
+                        <div class="flex items-center gap-2">
+                            <span class="text-2xl">🍎</span>
+                            <span id="hud-apple-count" class="text-xl font-bold text-amber-400">0</span>
+                        </div>
+                        <div class="h-4 w-px bg-white/20"></div>
+                        <div class="text-xs tracking-wider text-gray-300">
+                            BEST: <span id="hud-high-score" class="text-emerald-400 font-bold">0</span>
+                        </div>
+                    </div>
+
+                    <div class="flex items-center gap-3 pointer-events-auto">
+                        <div id="online-badge" class="glass-panel px-3 py-1.5 rounded-full flex items-center gap-2 text-xs font-semibold text-emerald-400">
+                            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                            <span id="hud-online-count">1 ONLINE</span>
+                        </div>
+                        <button id="btn-toggle-chat" class="glass-panel p-2 rounded-xl text-xs font-medium text-gray-200 hover:text-white transition">
+                            💬 Chat
+                        </button>
+                        <button id="btn-open-settings" class="glass-panel p-2 rounded-xl text-xs font-medium text-gray-200 hover:text-white transition">
+                            ⚙️ Host Menu
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Center Crosshair Target -->
+                <div id="crosshair"></div>
+
+                <!-- Bottom Chat Box Overlay -->
+                <div id="chat-overlay" class="pointer-events-auto max-w-sm w-full glass-panel rounded-xl p-3 flex flex-col gap-2 transition-opacity duration-200 opacity-90">
+                    <div id="chat-messages" class="h-28 overflow-y-auto custom-scroll text-xs flex flex-col gap-1.5 text-gray-200">
+                        <div class="text-emerald-400 text-[11px] font-medium">🌐 Connected to Orchard Server. Harvest together!</div>
+                    </div>
+                    <form id="chat-form" class="flex gap-2">
+                        <input id="chat-input" type="text" placeholder="Send message..." maxlength="80" class="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-emerald-500">
+                        <button type="submit" class="bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1.5 rounded-lg text-xs font-medium transition">Send</button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- HOSTING & LOBBY PORTAL OVERLAY -->
+            <div id="lobby-portal" class="absolute inset-0 z-20 glass-panel flex flex-col items-center justify-center p-6 overflow-y-auto">
+                <div class="max-w-md w-full flex flex-col items-center gap-6 text-center my-auto">
+                    
+                    <!-- Title Branding -->
+                    <div>
+                        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-semibold uppercase tracking-wider mb-2">
+                            <span>🍏 3D Harvest Server Hub</span>
+                        </div>
+                        <h1 class="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">APPLE HARVEST</h1>
+                        <p class="text-xs text-gray-400 mt-1">Host custom multiplayer servers, shake trees & harvest golden apples with friends!</p>
+                    </div>
+
+                    <!-- Customization Card -->
+                    <div class="glass-card w-full p-5 rounded-2xl text-left flex flex-col gap-4">
+                        <div class="text-xs font-bold text-gray-300 uppercase tracking-wider flex justify-between items-center">
+                            <span>1. Harvester Profile</span>
+                            <span class="text-[10px] text-emerald-400 font-normal">Real-time Avatar</span>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs text-gray-400 mb-1">Display Name</label>
+                            <input id="player-name-input" type="text" maxlength="16" placeholder="Enter Harvester Name" value="Harvester" class="w-full bg-black/50 border border-white/10 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500 transition">
+                        </div>
+
+                        <!-- Harvester Color Selection -->
+                        <div>
+                            <label class="block text-xs text-gray-400 mb-1.5">Outfit Color</label>
+                            <div class="flex items-center justify-between gap-2">
+                                <label class="color-option cursor-pointer">
+                                    <input type="radio" name="outfit-color" value="0x3b82f6" checked class="hidden">
+                                    <div class="w-7 h-7 rounded-full bg-blue-500 border border-white/20 transition"></div>
+                                </label>
+                                <label class="color-option cursor-pointer">
+                                    <input type="radio" name="outfit-color" value="0x10b981" class="hidden">
+                                    <div class="w-7 h-7 rounded-full bg-emerald-500 border border-white/20 transition"></div>
+                                </label>
+                                <label class="color-option cursor-pointer">
+                                    <input type="radio" name="outfit-color" value="0xef4444" class="hidden">
+                                    <div class="w-7 h-7 rounded-full bg-red-500 border border-white/20 transition"></div>
+                                </label>
+                                <label class="color-option cursor-pointer">
+                                    <input type="radio" name="outfit-color" value="0x8b5cf6" class="hidden">
+                                    <div class="w-7 h-7 rounded-full bg-purple-500 border border-white/20 transition"></div>
+                                </label>
+                                <label class="color-option cursor-pointer">
+                                    <input type="radio" name="outfit-color" value="0xf59e0b" class="hidden">
+                                    <div class="w-7 h-7 rounded-full bg-amber-500 border border-white/20 transition"></div>
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- Hat Type Selection -->
+                        <div>
+                            <label class="block text-xs text-gray-400 mb-1.5">Hat Style</label>
+                            <select id="hat-style-select" class="w-full bg-black/50 border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-500">
+                                <option value="straw">🌾 Classic Straw Hat</option>
+                                <option value="cap">🧢 Farmer Cap</option>
+                                <option value="crown">👑 Golden Crown</option>
+                                <option value="none">🚫 No Hat</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Room Host & Join Options -->
+                    <div class="glass-card w-full p-5 rounded-2xl text-left flex flex-col gap-4">
+                        <div class="text-xs font-bold text-gray-300 uppercase tracking-wider">
+                            2. Server Session
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-[11px] text-gray-400 mb-1">Room Code / Server</label>
+                                <input id="room-code-input" type="text" maxlength="12" placeholder="global-1" value="orchard-main" class="w-full bg-black/50 border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-500">
+                            </div>
+                            <div>
+                                <label class="block text-[11px] text-gray-400 mb-1">Time of Day</label>
+                                <select id="env-time-select" class="w-full bg-black/50 border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-500">
+                                    <option value="day">☀️ Sunny Noon</option>
+                                    <option value="sunset">🌅 Golden Sunset</option>
+                                    <option value="night">🌙 Moonlight Night</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Global Leaderboard Preview -->
+                    <div class="glass-card w-full p-4 rounded-2xl text-left">
+                        <div class="flex justify-between items-center mb-2">
+                            <span class="text-xs font-bold text-gray-300 uppercase tracking-wider">🏆 Top Harvesters</span>
+                            <span class="text-[10px] text-gray-400">Live Global Sync</span>
+                        </div>
+                        <div id="lobby-leaderboard" class="text-xs flex flex-col gap-1 text-gray-300">
+                            <div class="text-center text-gray-500 py-1 text-xs">Connecting to scores...</div>
+                        </div>
+                    </div>
+
+                    <!-- Start / Join Game Button -->
+                    <button id="btn-enter-game" class="w-full py-3.5 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white font-bold rounded-2xl shadow-lg shadow-emerald-500/20 text-sm tracking-wide transition transform active:scale-95">
+                        ENTER & HOST SERVER
+                    </button>
+                    
+                    <p class="text-[11px] text-gray-500">Controls: WASD to Walk • Mouse to Look • Left Click / E to Kick Tree</p>
+                </div>
+            </div>
+
+            <!-- HOST MENU SETTINGS MODAL -->
+            <div id="host-settings-modal" class="absolute inset-0 z-30 glass-panel flex items-center justify-center p-6 hidden">
+                <div class="max-w-xs w-full glass-card p-5 rounded-2xl flex flex-col gap-4 text-left">
+                    <div class="flex justify-between items-center border-b border-white/10 pb-3">
+                        <h3 class="text-sm font-bold text-white flex items-center gap-2">⚙️ Host Room Settings</h3>
+                        <button id="btn-close-settings" class="text-gray-400 hover:text-white text-base">✕</button>
+                    </div>
+
+                    <div class="flex flex-col gap-3 text-xs">
+                        <div>
+                            <label class="block text-gray-400 mb-1">Retro Shader Filter</label>
+                            <button id="btn-toggle-vhs" class="w-full py-2 bg-emerald-600/30 border border-emerald-500/50 rounded-xl text-emerald-300 font-semibold transition">
+                                VHS Overlay: ON
+                            </button>
+                        </div>
+
+                        <div>
+                            <label class="block text-gray-400 mb-1">Atmosphere preset</label>
+                            <button id="btn-cycle-env" class="w-full py-2 bg-white/5 border border-white/10 hover:bg-white/10 rounded-xl text-white transition">
+                                Cycle Day / Sunset / Night
+                            </button>
+                        </div>
+
+                        <div class="border-t border-white/10 pt-2 flex flex-col gap-2">
+                            <button id="btn-leave-room" class="w-full py-2.5 bg-red-600/80 hover:bg-red-500 text-white font-semibold rounded-xl transition">
+                                Exit Server to Lobby
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        let scene, camera, renderer, renderTarget;
+        let postScene, postCamera, vhsMaterial;
+        let clock;
+        let enableVHS = true;
+
+        let score = 0;
+        let highScore = 0;
+        let mouseLookEnabled = false;
+        let justPointerLocked = false;
+        let activeRoomCode = "orchard-main";
+
+        // Player Attributes
+        const PLAYER_HEIGHT = 1.7;
+        const PLAYER_RADIUS = 0.45;
+        const WALK_SPEED = 7.0;
+        const JUMP_VELOCITY = 6.8;
+        const GRAVITY = 19.0;
+
+        const player = {
+            name: "Harvester",
+            color: "0x3b82f6",
+            hatStyle: "straw",
+            position: new THREE.Vector3(0, PLAYER_HEIGHT, 0),
+            velocity: new THREE.Vector3(),
+            onGround: true,
+            pitch: 0,
+            yaw: 0,
+            headBobTimer: 0
+        };
+
+        const keys = {};
+
+        // Scene Storage
+        const trees = [];
+        const activeApples = [];
+        const particlePool = [];
+        const remotePlayers = {}; // Dictionary of active remote player meshes
+
+        // Geometries & Shared Materials
+        let appleGeo, redAppleMat, goldenAppleMat, leafParticleGeo, leafParticleMat;
+        let directionalSun, ambientLight, hemisphereLight;
+
+        // Raycasting
+        const raycaster = new THREE.Raycaster();
+        const screenCenter = new THREE.Vector2(0, 0);
+        let hoveredTree = null;
+
+        class AudioEngine {
+            constructor() {
+                this.ctx = null;
+            }
+
+            init() {
+                if (!this.ctx) {
+                    const AudioContext = window.AudioContext || window.webkitAudioContext;
+                    this.ctx = new AudioContext();
+                }
+                if (this.ctx.state === 'suspended') {
+                    this.ctx.resume();
+                }
+            }
+
+            playCollect(isGolden = false) {
+                if (!this.ctx) return;
+                const now = this.ctx.currentTime;
+
+                if (isGolden) {
+                    [523.25, 659.25, 783.99, 1046.50].forEach((freq, idx) => {
+                        const osc = this.ctx.createOscillator();
+                        const gain = this.ctx.createGain();
+                        osc.type = 'triangle';
+                        osc.frequency.setValueAtTime(freq, now + idx * 0.05);
+                        gain.gain.setValueAtTime(0.18, now + idx * 0.05);
+                        gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.05 + 0.22);
+                        osc.connect(gain);
+                        gain.connect(this.ctx.destination);
+                        osc.start(now + idx * 0.05);
+                        osc.stop(now + idx * 0.05 + 0.22);
+                    });
+                } else {
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(523.25, now);
+                    osc.frequency.exponentialRampToValueAtTime(880.00, now + 0.12);
+                    gain.gain.setValueAtTime(0.18, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.14);
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    osc.start(now);
+                    osc.stop(now + 0.14);
+                }
+            }
+
+            playKick() {
+                if (!this.ctx) return;
+                const now = this.ctx.currentTime;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(110, now);
+                osc.frequency.exponentialRampToValueAtTime(30, now + 0.22);
+                gain.gain.setValueAtTime(0.35, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.22);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start(now);
+                osc.stop(now + 0.22);
+            }
+
+            playBounce() {
+                if (!this.ctx) return;
+                const now = this.ctx.currentTime;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(130, now);
+                osc.frequency.exponentialRampToValueAtTime(45, now + 0.08);
+                gain.gain.setValueAtTime(0.1, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start(now);
+                osc.stop(now + 0.08);
+            }
+        }
+
+        const audio = new AudioEngine();
+
+        const VHSShader = {
+            uniforms: {
+                tDiffuse: { value: null },
+                uTime: { value: 0 },
+                uResolution: { value: new THREE.Vector2() }
+            },
+            vertexShader: `
+                varying vec2 vUv;
+                void main() {
+                    vUv = uv;
+                    gl_Position = vec4(position, 1.0);
+                }
+            `,
+            fragmentShader: `
+                uniform sampler2D tDiffuse;
+                uniform float uTime;
+                uniform vec2 uResolution;
+                varying vec2 vUv;
+
+                float hash(vec2 p) {
+                    p = fract(p * vec2(234.34, 435.345));
+                    p += dot(p, p + 34.23);
+                    return fract(p.x * p.y);
+                }
+
+                void main() {
+                    vec2 uv = vUv;
+
+                    float jitter = sin(uTime * 14.0 + uv.y * 60.0) * 0.0005;
+                    float lineNoise = step(0.994, sin(uv.y * 110.0 + uTime * 7.0)) * 0.002;
+                    uv.x += jitter + lineNoise;
+
+                    float shift = 0.0015;
+                    float r = texture2D(tDiffuse, vec2(uv.x + shift, uv.y)).r;
+                    float g = texture2D(tDiffuse, uv).g;
+                    float b = texture2D(tDiffuse, vec2(uv.x - shift, uv.y)).b;
+                    vec3 col = vec3(r, g, b);
+
+                    float scanline = sin(uv.y * uResolution.y * 1.4) * 0.03;
+                    col -= scanline;
+
+                    float grain = (hash(uv * uTime * 50.0) - 0.5) * 0.04;
+                    col += grain;
+
+                    float vig = uv.x * uv.y * (1.0 - uv.x) * (1.0 - uv.y);
+                    vig = clamp(pow(16.0 * vig, 0.28), 0.0, 1.0);
+                    col *= mix(0.82, 1.0, vig);
+
+                    gl_FragColor = vec4(col, 1.0);
+                }
+            `
+        };
+
+        function initScene() {
+            const container = document.getElementById('canvas-container');
+
+            scene = new THREE.Scene();
+            setEnvironmentTime('day');
+
+            clock = new THREE.Clock();
+
+            camera = new THREE.PerspectiveCamera(70, 4 / 3, 0.1, 180);
+            camera.position.set(0, PLAYER_HEIGHT, 0);
+
+            renderer = new THREE.WebGLRenderer({ antialias: false, powerPreference: "high-performance" });
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            renderer.outputEncoding = THREE.sRGBEncoding;
+            container.appendChild(renderer.domElement);
+
+            renderTarget = new THREE.WebGLRenderTarget(1024, 768, {
+                minFilter: THREE.LinearFilter,
+                magFilter: THREE.LinearFilter,
+                format: THREE.RGBAFormat
+            });
+
+            postScene = new THREE.Scene();
+            postCamera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
+            vhsMaterial = new THREE.ShaderMaterial({
+                uniforms: VHSShader.uniforms,
+                vertexShader: VHSShader.vertexShader,
+                fragmentShader: VHSShader.fragmentShader
+            });
+            vhsMaterial.uniforms.tDiffuse.value = renderTarget.texture;
+
+            const quad = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), vhsMaterial);
+            postScene.add(quad);
+
+            ambientLight = new THREE.AmbientLight(0xffffff, 0.65);
+            scene.add(ambientLight);
+
+            directionalSun = new THREE.DirectionalLight(0xfff8eb, 0.95);
+            directionalSun.position.set(35, 50, 20);
+            directionalSun.castShadow = true;
+            directionalSun.shadow.mapSize.width = 1024;
+            directionalSun.shadow.mapSize.height = 1024;
+            directionalSun.shadow.camera.near = 0.5;
+            directionalSun.shadow.camera.far = 120;
+            const d = 45;
+            directionalSun.shadow.camera.left = -d;
+            directionalSun.shadow.camera.right = d;
+            directionalSun.shadow.camera.top = d;
+            directionalSun.shadow.camera.bottom = -d;
+            scene.add(directionalSun);
+
+            hemisphereLight = new THREE.HemisphereLight(0x8ba29a, 0x3d6b35, 0.35);
+            scene.add(hemisphereLight);
+
+            initSharedAssets();
+            buildTerrain();
+            buildOrchard();
+
+            onWindowResize();
+            window.addEventListener('resize', onWindowResize);
+        }
+
+        function setEnvironmentTime(preset) {
+            if (!scene) return;
+            if (preset === 'sunset') {
+                scene.background = new THREE.Color(0xd97706);
+                scene.fog = new THREE.FogExp2(0xd97706, 0.025);
+                if (directionalSun) directionalSun.color.setHex(0xffedd5);
+            } else if (preset === 'night') {
+                scene.background = new THREE.Color(0x0f172a);
+                scene.fog = new THREE.FogExp2(0x0f172a, 0.035);
+                if (directionalSun) directionalSun.color.setHex(0x93c5fd);
+            } else {
+                scene.background = new THREE.Color(0x8ba29a);
+                scene.fog = new THREE.FogExp2(0x8ba29a, 0.028);
+                if (directionalSun) directionalSun.color.setHex(0xfff8eb);
+            }
+        }
+
+        function initSharedAssets() {
+            appleGeo = new THREE.SphereGeometry(0.22, 10, 10);
+            appleGeo.scale(1, 0.92, 1);
+
+            redAppleMat = new THREE.MeshStandardMaterial({ color: 0xd92b2b, roughness: 0.35, metalness: 0.1 });
+            goldenAppleMat = new THREE.MeshStandardMaterial({ color: 0xffd700, roughness: 0.2, metalness: 0.8, emissive: 0x332200 });
+
+            leafParticleGeo = new THREE.PlaneGeometry(0.12, 0.12);
+            leafParticleMat = new THREE.MeshBasicMaterial({ color: 0x52c46c, side: THREE.DoubleSide, transparent: true });
+        }
+
+        function buildTerrain() {
+            const groundGeo = new THREE.PlaneGeometry(140, 140, 1, 1);
+            groundGeo.rotateX(-Math.PI / 2);
+            const groundMat = new THREE.MeshStandardMaterial({ color: 0x43733a, roughness: 0.9 });
+            const ground = new THREE.Mesh(groundGeo, groundMat);
+            ground.receiveShadow = true;
+            scene.add(ground);
+
+            const grassGeo = new THREE.ConeGeometry(0.12, 0.45, 3);
+            const grassMat = new THREE.MeshStandardMaterial({ color: 0x4e8543, roughness: 0.9 });
+            const grassMesh = new THREE.InstancedMesh(grassGeo, grassMat, 450);
+
+            const dummy = new THREE.Object3D();
+            for (let i = 0; i < 450; i++) {
+                dummy.position.set((Math.random() - 0.5) * 120, 0.22, (Math.random() - 0.5) * 120);
+                dummy.rotation.y = Math.random() * Math.PI;
+                dummy.scale.set(1 + Math.random() * 0.4, 1 + Math.random() * 0.5, 1 + Math.random() * 0.4);
+                dummy.updateMatrix();
+                grassMesh.setMatrixAt(i, dummy.matrix);
+            }
+            scene.add(grassMesh);
+        }
+
+        function buildOrchard() {
+            const numTrees = 32;
+            const minTreeDist = 8.0;
+            const treePositions = [];
+
+            for (let i = 0; i < numTrees; i++) {
+                let pos;
+                let attempts = 0;
+                do {
+                    pos = new THREE.Vector3((Math.random() - 0.5) * 105, 0, (Math.random() - 0.5) * 105);
+                    attempts++;
+                } while ((pos.length() < 6 || treePositions.some(p => p.distanceTo(pos) < minTreeDist)) && attempts < 100);
+
+                if (attempts < 100) {
+                    treePositions.push(pos);
+                    createTree(pos.x, pos.z);
+                }
+            }
+        }
+
+        function createTree(x, z) {
+            const treeGroup = new THREE.Group();
+            treeGroup.position.set(x, 0, z);
+
+            const trunkRadius = 0.45;
+            const trunkHeight = 3.6 + Math.random() * 0.7;
+
+            const trunkGeo = new THREE.CylinderGeometry(trunkRadius * 0.8, trunkRadius, trunkHeight, 8);
+            const trunkMat = new THREE.MeshStandardMaterial({ color: 0x52392c, roughness: 0.9 });
+            const trunk = new THREE.Mesh(trunkGeo, trunkMat);
+            trunk.position.y = trunkHeight / 2;
+            trunk.castShadow = true;
+            trunk.receiveShadow = true;
+            treeGroup.add(trunk);
+
+            const canopyGroup = new THREE.Group();
+            canopyGroup.position.y = trunkHeight;
+
+            const leafMat = new THREE.MeshStandardMaterial({ color: 0x2b7346, roughness: 0.7, flatShading: true });
+
+            const clusters = [
+                new THREE.Vector3(0, 1.1, 0),
+                new THREE.Vector3(1.0, 0.5, 0.7),
+                new THREE.Vector3(-1.0, 0.6, -0.7),
+                new THREE.Vector3(0.7, 0.7, -1.0),
+                new THREE.Vector3(-0.7, 0.5, 1.0)
+            ];
+
+            const branchNodes = [];
+
+            clusters.forEach((offset) => {
+                const radius = 1.3 + Math.random() * 0.3;
+                const leafGeo = new THREE.IcosahedronGeometry(radius, 1);
+                const leafMesh = new THREE.Mesh(leafGeo, leafMat);
+                leafMesh.position.copy(offset);
+                leafMesh.castShadow = true;
+                leafMesh.receiveShadow = true;
+                canopyGroup.add(leafMesh);
+
+                branchNodes.push(new THREE.Vector3(x + offset.x * 0.85, trunkHeight + offset.y - 0.35, z + offset.z * 0.85));
+            });
+
+            treeGroup.add(canopyGroup);
+
+            const treeData = {
+                mesh: treeGroup,
+                foliage: canopyGroup,
+                position: new THREE.Vector2(x, z),
+                trunkRadius: trunkRadius,
+                branchNodes: branchNodes,
+                lastShakeTime: 0,
+                originalPos: new THREE.Vector3(x, 0, z)
+            };
+
+            treeGroup.userData = treeData;
+            trees.push(treeData);
+            scene.add(treeGroup);
+
+            branchNodes.forEach(node => {
+                if (Math.random() < 0.75) spawnApple(node, treeData);
+            });
+        }
+
+        function spawnApple(branchPos, treeData) {
+            const isGolden = Math.random() < 0.08;
+            const appleMesh = new THREE.Mesh(appleGeo, isGolden ? goldenAppleMat : redAppleMat);
+            appleMesh.castShadow = true;
+
+            const pos = branchPos.clone().add(new THREE.Vector3(
+                (Math.random() - 0.5) * 0.5,
+                (Math.random() - 0.5) * 0.2,
+                (Math.random() - 0.5) * 0.5
+            ));
+
+            appleMesh.position.copy(pos);
+
+            const appleData = {
+                mesh: appleMesh,
+                tree: treeData,
+                state: 'ON_TREE',
+                velocity: new THREE.Vector3(),
+                isGolden: isGolden,
+                bounceCount: 0
+            };
+
+            appleMesh.userData = appleData;
+            scene.add(appleMesh);
+            activeApples.push(appleData);
+        }
+
+        function createLeafParticles(pos) {
+            for (let i = 0; i < 10; i++) {
+                const p = new THREE.Mesh(leafParticleGeo, leafParticleMat);
+                p.position.copy(pos).add(new THREE.Vector3(
+                    (Math.random() - 0.5) * 1.5,
+                    (Math.random() - 0.5) * 1.0,
+                    (Math.random() - 0.5) * 1.5
+                ));
+                p.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, 0);
+
+                scene.add(p);
+                particlePool.push({
+                    mesh: p,
+                    velocity: new THREE.Vector3((Math.random() - 0.5) * 1.5, -0.8 - Math.random(), (Math.random() - 0.5) * 1.5),
+                    rotSpeed: (Math.random() - 0.5) * 5,
+                    life: 1.0
+                });
+            }
+        }
+
+        function createPlayerAvatarMesh(displayName, outfitColorHex = "0x3b82f6", hatStyle = "straw") {
+            const group = new THREE.Group();
+
+            const hexNum = parseInt(outfitColorHex.toString().replace('0x', ''), 16);
+            const bodyGeo = new THREE.CylinderGeometry(0.3, 0.38, 1.1, 10);
+            const bodyMat = new THREE.MeshStandardMaterial({ color: isNaN(hexNum) ? 0x3b82f6 : hexNum, roughness: 0.6 });
+            const body = new THREE.Mesh(bodyGeo, bodyMat);
+            body.position.y = 0.55;
+            body.castShadow = true;
+            group.add(body);
+
+            const headGeo = new THREE.SphereGeometry(0.26, 12, 12);
+            const headMat = new THREE.MeshStandardMaterial({ color: 0xf3d2b3, roughness: 0.8 });
+            const head = new THREE.Mesh(headGeo, headMat);
+            head.position.y = 1.3;
+            head.castShadow = true;
+            group.add(head);
+
+            if (hatStyle === 'straw') {
+                const brimGeo = new THREE.CylinderGeometry(0.55, 0.55, 0.04, 12);
+                const crownGeo = new THREE.CylinderGeometry(0.28, 0.28, 0.22, 12);
+                const hatMat = new THREE.MeshStandardMaterial({ color: 0xeab308, roughness: 0.7 });
+
+                const brim = new THREE.Mesh(brimGeo, hatMat);
+                brim.position.y = 1.48;
+                group.add(brim);
+
+                const crown = new THREE.Mesh(crownGeo, hatMat);
+                crown.position.y = 1.61;
+                group.add(crown);
+            } else if (hatStyle === 'cap') {
+                const capGeo = new THREE.SphereGeometry(0.28, 10, 10, 0, Math.PI * 2, 0, Math.PI / 2);
+                const capMat = new THREE.MeshStandardMaterial({ color: 0xd97706, roughness: 0.5 });
+                const cap = new THREE.Mesh(capGeo, capMat);
+                cap.position.y = 1.36;
+                group.add(cap);
+            } else if (hatStyle === 'crown') {
+                const crownGeo = new THREE.CylinderGeometry(0.28, 0.22, 0.18, 6);
+                const crownMat = new THREE.MeshStandardMaterial({ color: 0xfacc15, metalness: 0.9, roughness: 0.2 });
+                const crown = new THREE.Mesh(crownGeo, crownMat);
+                crown.position.y = 1.55;
+                group.add(crown);
+            }
+
+            const nameSprite = createNameTagSprite(displayName);
+            nameSprite.position.y = 2.1;
+            group.add(nameSprite);
+
+            scene.add(group);
+            return {
+                group: group,
+                body: body,
+                head: head,
+                nameSprite: nameSprite
+            };
+        }
+
+        function createNameTagSprite(text) {
+            const canvas = document.createElement('canvas');
+            canvas.width = 256;
+            canvas.height = 64;
+            const ctx = canvas.getContext('2d');
+
+            ctx.fillStyle = 'rgba(15, 23, 42, 0.85)';
+            ctx.beginPath();
+            ctx.roundRect(8, 8, 240, 48, 12);
+            ctx.fill();
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.25)';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            ctx.font = 'bold 20px system-ui, sans-serif';
+            ctx.fillStyle = '#4ade80';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(text, 128, 32);
+
+            const texture = new THREE.CanvasTexture(canvas);
+            const spriteMat = new THREE.SpriteMaterial({ map: texture, transparent: true });
+            const sprite = new THREE.Sprite(spriteMat);
+            sprite.scale.set(2.4, 0.6, 1);
+            return sprite;
+        }
+
+        function setupControls() {
+            let lastUnlockTime = 0;
+
+            document.getElementById('btn-enter-game').addEventListener('click', () => {
+                audio.init();
+
+                const nameInput = document.getElementById('player-name-input').value.trim();
+                player.name = nameInput || "Harvester";
+
+                const colorSelected = document.querySelector('input[name="outfit-color"]:checked');
+                if (colorSelected) player.color = colorSelected.value;
+
+                player.hatStyle = document.getElementById('hat-style-select').value;
+                activeRoomCode = document.getElementById('room-code-input').value.trim() || "orchard-main";
+                setEnvironmentTime(document.getElementById('env-time-select').value);
+
+                document.getElementById('lobby-portal').classList.add('hidden');
+                document.getElementById('hud-layer').classList.remove('hidden');
+
+                if (window.initRoomConnection) {
+                    window.initRoomConnection(activeRoomCode);
+                }
+
+                requestLock();
+            });
+
+            function requestLock() {
+                if (performance.now() - lastUnlockTime < 1000) return;
+                try {
+                    const promise = document.body.requestPointerLock();
+                    if (promise && typeof promise.catch === 'function') {
+                        promise.catch(() => {});
+                    }
+                } catch (e) {}
+            }
+
+            document.addEventListener('pointerlockchange', () => {
+                if (document.pointerLockElement === document.body) {
+                    mouseLookEnabled = true;
+                    justPointerLocked = true;
+                } else {
+                    mouseLookEnabled = false;
+                    lastUnlockTime = performance.now();
+                }
+            });
+
+            document.addEventListener('mousemove', (e) => {
+                if (!mouseLookEnabled) return;
+
+                if (justPointerLocked) {
+                    justPointerLocked = false;
+                    return;
+                }
+
+                if (Math.abs(e.movementX) > 250 || Math.abs(e.movementY) > 250) return;
+
+                const sensitivity = 0.0022;
+                player.yaw -= e.movementX * sensitivity;
+                player.pitch -= e.movementY * sensitivity;
+
+                const maxPitch = (Math.PI / 2) - 0.02;
+                player.pitch = Math.max(-maxPitch, Math.min(maxPitch, player.pitch));
+            });
+
+            window.addEventListener('keydown', (e) => {
+                keys[e.code] = true;
+                if (e.code === 'KeyE' && mouseLookEnabled) {
+                    shakeHoveredTree();
+                }
+            });
+
+            window.addEventListener('keyup', (e) => {
+                keys[e.code] = false;
+            });
+
+            document.addEventListener('mousedown', (e) => {
+                if (e.button === 0 && mouseLookEnabled) {
+                    shakeHoveredTree();
+                }
+            });
+
+            // Settings Modal Handlers
+            document.getElementById('btn-open-settings').addEventListener('click', () => {
+                document.exitPointerLock();
+                document.getElementById('host-settings-modal').classList.remove('hidden');
+            });
+
+            document.getElementById('btn-close-settings').addEventListener('click', () => {
+                document.getElementById('host-settings-modal').classList.add('hidden');
+            });
+
+            document.getElementById('btn-leave-room').addEventListener('click', () => {
+                document.getElementById('host-settings-modal').classList.add('hidden');
+                document.getElementById('hud-layer').classList.add('hidden');
+                document.getElementById('lobby-portal').classList.remove('hidden');
+            });
+
+            document.getElementById('btn-toggle-vhs').addEventListener('click', () => {
+                enableVHS = !enableVHS;
+                const btn = document.getElementById('btn-toggle-vhs');
+                btn.innerText = `VHS Overlay: ${enableVHS ? 'ON' : 'OFF'}`;
+            });
+
+            document.getElementById('btn-cycle-env').addEventListener('click', () => {
+                const current = document.getElementById('env-time-select').value;
+                const next = current === 'day' ? 'sunset' : current === 'sunset' ? 'night' : 'day';
+                document.getElementById('env-time-select').value = next;
+                setEnvironmentTime(next);
+            });
+        }
+
+        function updatePlayer(delta) {
+            if (!mouseLookEnabled) return;
+
+            camera.rotation.order = 'YXZ';
+            camera.rotation.y = player.yaw;
+            camera.rotation.x = player.pitch;
+
+            const forward = new THREE.Vector3();
+            camera.getWorldDirection(forward);
+            forward.y = 0;
+            forward.normalize();
+
+            const right = new THREE.Vector3();
+            right.crossVectors(forward, new THREE.Vector3(0, 1, 0)).normalize();
+
+            const moveDir = new THREE.Vector3();
+
+            if (keys['KeyW'] || keys['ArrowUp']) moveDir.add(forward);
+            if (keys['KeyS'] || keys['ArrowDown']) moveDir.sub(forward);
+            if (keys['KeyD'] || keys['ArrowRight']) moveDir.add(right);
+            if (keys['KeyA'] || keys['ArrowLeft']) moveDir.sub(right);
+
+            if (moveDir.lengthSq() > 0) {
+                moveDir.normalize();
+                player.position.addScaledVector(moveDir, WALK_SPEED * delta);
+            }
+
+            const playerPos2D = new THREE.Vector2(player.position.x, player.position.z);
+            trees.forEach(tree => {
+                const dist = playerPos2D.distanceTo(tree.position);
+                const minDist = PLAYER_RADIUS + tree.trunkRadius;
+                if (dist < minDist) {
+                    const pushDir = playerPos2D.clone().sub(tree.position).normalize();
+                    if (pushDir.length() === 0) pushDir.set(1, 0);
+                    const corrected = tree.position.clone().add(pushDir.multiplyScalar(minDist));
+                    player.position.x = corrected.x;
+                    player.position.z = corrected.y;
+                    playerPos2D.copy(corrected);
+                }
+            });
+
+            player.position.x = Math.max(-55, Math.min(55, player.position.x));
+            player.position.z = Math.max(-55, Math.min(55, player.position.z));
+
+            player.velocity.y -= GRAVITY * delta;
+
+            if (keys['Space'] && player.onGround) {
+                player.velocity.y = JUMP_VELOCITY;
+                player.onGround = false;
+            }
+
+            player.position.y += player.velocity.y * delta;
+
+            if (player.position.y <= PLAYER_HEIGHT) {
+                player.position.y = PLAYER_HEIGHT;
+                player.velocity.y = 0;
+                player.onGround = true;
+            }
+
+            if (moveDir.lengthSq() > 0 && player.onGround) {
+                player.headBobTimer += delta * WALK_SPEED * 1.8;
+                camera.position.set(player.position.x, player.position.y + Math.sin(player.headBobTimer) * 0.04, player.position.z);
+            } else {
+                camera.position.copy(player.position);
+            }
+
+            raycaster.setFromCamera(screenCenter, camera);
+            const intersects = raycaster.intersectObjects(trees.map(t => t.mesh), true);
+
+            const crosshair = document.getElementById('crosshair');
+            if (intersects.length > 0 && intersects[0].distance < 6.0) {
+                let obj = intersects[0].object;
+                while (obj.parent && !trees.some(t => t.mesh === obj)) {
+                    obj = obj.parent;
+                }
+                const found = trees.find(t => t.mesh === obj);
+                if (found) {
+                    hoveredTree = found;
+                    crosshair.classList.add('hovering');
+                } else {
+                    hoveredTree = null;
+                    crosshair.classList.remove('hovering');
+                }
+            } else {
+                hoveredTree = null;
+                crosshair.classList.remove('hovering');
+            }
+        }
+
+        function shakeHoveredTree() {
+            if (!hoveredTree) return;
+
+            const now = clock.getElapsedTime();
+            if (now - hoveredTree.lastShakeTime < 0.55) return;
+
+            hoveredTree.lastShakeTime = now;
+            audio.playKick();
+
+            createLeafParticles(hoveredTree.originalPos.clone().add(new THREE.Vector3(0, 3.5, 0)));
+
+            activeApples.forEach(apple => {
+                if (apple.tree === hoveredTree && apple.state === 'ON_TREE') {
+                    dropApple(apple);
+                }
+            });
+        }
+
+        function dropApple(apple) {
+            apple.state = 'FALLING';
+            apple.velocity.set((Math.random() - 0.5) * 0.8, -0.1, (Math.random() - 0.5) * 0.8);
+        }
+
+        function updateApples(delta) {
+            const appleRadius = 0.22;
+            const gravity = 15;
+
+            for (let i = activeApples.length - 1; i >= 0; i--) {
+                const apple = activeApples[i];
+
+                if (apple.state === 'FALLING') {
+                    apple.velocity.y -= gravity * delta;
+                    apple.mesh.position.addScaledVector(apple.velocity, delta);
+
+                    if (apple.mesh.position.y <= appleRadius) {
+                        apple.mesh.position.y = appleRadius;
+                        apple.bounceCount++;
+
+                        if (apple.bounceCount < 2) {
+                            apple.velocity.y = -apple.velocity.y * 0.38;
+                            apple.velocity.x *= 0.6;
+                            apple.velocity.z *= 0.6;
+                            audio.playBounce();
+                        } else {
+                            apple.state = 'ON_GROUND';
+                            apple.velocity.set(0, 0, 0);
+                        }
+                    }
+                }
+
+                if (apple.state === 'ON_GROUND') {
+                    apple.mesh.rotation.y += delta * 1.2;
+                }
+
+                const distToPlayer = apple.mesh.position.distanceTo(player.position);
+                if (distToPlayer < 1.5) {
+                    collectApple(apple, i);
+                }
+            }
+        }
+
+        function collectApple(apple, index) {
+            scene.remove(apple.mesh);
+            activeApples.splice(index, 1);
+
+            audio.playCollect(apple.isGolden);
+            score += apple.isGolden ? 5 : 1;
+            document.getElementById('hud-apple-count').innerText = score;
+
+            if (window.saveFirebaseScore) {
+                window.saveFirebaseScore(score);
+            }
+
+            const targetTree = apple.tree;
+            setTimeout(() => {
+                if (targetTree) {
+                    const node = targetTree.branchNodes[Math.floor(Math.random() * targetTree.branchNodes.length)];
+                    spawnApple(node, targetTree);
+                }
+            }, 5000 + Math.random() * 3000);
+        }
+
+        function updateParticles(delta) {
+            for (let i = particlePool.length - 1; i >= 0; i--) {
+                const p = particlePool[i];
+                p.life -= delta;
+                p.mesh.position.addScaledVector(p.velocity, delta);
+                p.mesh.rotation.z += p.rotSpeed * delta;
+                p.mesh.material.opacity = Math.max(0, p.life / 1.0);
+
+                if (p.life <= 0) {
+                    scene.remove(p.mesh);
+                    p.mesh.geometry.dispose();
+                    particlePool.splice(i, 1);
+                }
+            }
+        }
+
+        function updateTreeAnimations() {
+            const now = clock.getElapsedTime();
+            trees.forEach(tree => {
+                const timeSinceShake = now - tree.lastShakeTime;
+                if (timeSinceShake < 0.4) {
+                    const factor = (1.0 - timeSinceShake / 0.4);
+                    tree.foliage.position.x = Math.sin(timeSinceShake * 50) * 0.15 * factor;
+                    tree.foliage.position.z = Math.cos(timeSinceShake * 50) * 0.15 * factor;
+                } else {
+                    tree.foliage.position.set(0, tree.foliage.position.y, 0);
+                }
+            });
+        }
+
+        function updateRemotePlayers(delta) {
+            Object.keys(remotePlayers).forEach(id => {
+                const rp = remotePlayers[id];
+                if (rp && rp.mesh) {
+                    rp.mesh.position.lerp(rp.targetPos, delta * 12);
+                    rp.mesh.rotation.y = THREE.MathUtils.lerp(rp.mesh.rotation.y, rp.targetYaw, delta * 12);
+                }
+            });
+        }
+
+        function onWindowResize() {
+            const viewportContainer = document.getElementById('viewport-container');
+            const w = viewportContainer.clientWidth;
+            const h = viewportContainer.clientHeight;
+
+            camera.aspect = 4 / 3;
+            camera.updateProjectionMatrix();
+
+            renderer.setSize(w, h);
+            renderTarget.setSize(w, h);
+            vhsMaterial.uniforms.uResolution.value.set(w, h);
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+
+            const delta = Math.min(clock.getDelta(), 0.05);
+            const time = clock.getElapsedTime();
+
+            updatePlayer(delta);
+            updateApples(delta);
+            updateParticles(delta);
+            updateTreeAnimations();
+            updateRemotePlayers(delta);
+
+            vhsMaterial.uniforms.uTime.value = time;
+
+            if (enableVHS) {
+                renderer.setRenderTarget(renderTarget);
+                renderer.render(scene, camera);
+
+                renderer.setRenderTarget(null);
+                renderer.render(postScene, postCamera);
+            } else {
+                renderer.setRenderTarget(null);
+                renderer.render(scene, camera);
+            }
+        }
+
+        window.onload = function () {
+            initScene();
+            setupControls();
+            animate();
+        };
+    </script>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, deleteDoc, collection, onSnapshot, addDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'apple-harvest-host-hub';
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : null;
+
+        let auth = null;
+        let db = null;
+        let currentUser = null;
+        let personalHighScore = 0;
+        let syncInterval = null;
+        let currentRoomId = "orchard-main";
+
+        if (firebaseConfig) {
+            const app = initializeApp(firebaseConfig);
+            auth = getAuth(app);
+            db = getFirestore(app);
+
+            initAuth();
+        }
+
+        async function initAuth() {
+            try {
+                let userCredential;
+                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                    userCredential = await signInWithCustomToken(auth, __initial_auth_token);
+                } else {
+                    userCredential = await signInAnonymously(auth);
+                }
+                currentUser = userCredential.user;
+                if (currentUser) {
+                    subscribeToLeaderboard();
+                }
+            } catch (err) {
+                console.error("Firebase auth error:", err);
+                try {
+                    const userCredential = await signInAnonymously(auth);
+                    currentUser = userCredential.user;
+                    if (currentUser) {
+                        subscribeToLeaderboard();
+                    }
+                } catch (e) {
+                    console.error("Anonymous auth failed:", e);
+                }
+            }
+        }
+
+        window.initRoomConnection = function(roomId) {
+            currentRoomId = roomId || "orchard-main";
+            if (!db || !currentUser) return;
+
+            subscribeToPlayers();
+            subscribeToChat();
+            startPositionSync();
+        };
+
+        function subscribeToPlayers() {
+            if (!db || !currentUser) return;
+            const playersColl = collection(db, 'artifacts', appId, 'public', 'data', `players_${currentRoomId}`);
+
+            onSnapshot(playersColl, (snapshot) => {
+                const now = Date.now();
+                const activeUserIds = new Set();
+
+                snapshot.forEach((docSnap) => {
+                    const data = docSnap.data();
+                    const targetId = docSnap.id;
+
+                    if (!data || targetId === currentUser.uid) return;
+
+                    // Filter inactive players
+                    if (data.lastSeen && (now - data.lastSeen > 12000)) return;
+
+                    activeUserIds.add(targetId);
+
+                    if (!remotePlayers[targetId]) {
+                        const displayName = data.name || `Harvester ${targetId.slice(0, 4)}`;
+                        const avatar = createPlayerAvatarMesh(displayName, data.color || "0x3b82f6", data.hatStyle || "straw");
+                        remotePlayers[targetId] = {
+                            mesh: avatar.group,
+                            targetPos: new THREE.Vector3(data.x || 0, (data.y || PLAYER_HEIGHT) - PLAYER_HEIGHT, data.z || 0),
+                            targetYaw: data.yaw || 0
+                        };
+                    } else {
+                        const rp = remotePlayers[targetId];
+                        rp.targetPos.set(data.x || 0, (data.y || PLAYER_HEIGHT) - PLAYER_HEIGHT, data.z || 0);
+                        rp.targetYaw = data.yaw || 0;
+                    }
+                });
+
+                // Cleanup disconnected
+                Object.keys(remotePlayers).forEach((id) => {
+                    if (!activeUserIds.has(id)) {
+                        if (remotePlayers[id] && remotePlayers[id].mesh) {
+                            scene.remove(remotePlayers[id].mesh);
+                        }
+                        delete remotePlayers[id];
+                    }
+                });
+
+                const countElem = document.getElementById('hud-online-count');
+                if (countElem) {
+                    countElem.innerText = `${activeUserIds.size + 1} ONLINE`;
+                }
+            }, (error) => {
+                console.error("Multiplayer sync error:", error);
+            });
+        }
+
+        function startPositionSync() {
+            if (syncInterval) clearInterval(syncInterval);
+
+            syncInterval = setInterval(() => {
+                if (!db || !currentUser) return;
+
+                const playerDoc = doc(db, 'artifacts', appId, 'public', 'data', `players_${currentRoomId}`, currentUser.uid);
+                setDoc(playerDoc, {
+                    userId: currentUser.uid,
+                    name: player.name,
+                    color: player.color,
+                    hatStyle: player.hatStyle,
+                    x: player.position.x,
+                    y: player.position.y,
+                    z: player.position.z,
+                    yaw: player.yaw,
+                    score: score,
+                    lastSeen: Date.now()
+                }, { merge: true }).catch(err => console.error("Position sync error:", err));
+            }, 80);
+        }
+
+        function subscribeToChat() {
+            if (!db) return;
+            const chatColl = collection(db, 'artifacts', appId, 'public', 'data', `chat_${currentRoomId}`);
+
+            onSnapshot(chatColl, (snapshot) => {
+                const messages = [];
+                snapshot.forEach((doc) => {
+                    const data = doc.data();
+                    if (data && data.text) {
+                        messages.push(data);
+                    }
+                });
+
+                messages.sort((a, b) => (a.time || 0) - (b.time || 0));
+                renderChat(messages.slice(-20));
+            });
+        }
+
+        function renderChat(messages) {
+            const container = document.getElementById('chat-messages');
+            if (!container) return;
+
+            container.innerHTML = messages.map(m => `
+                <div>
+                    <span class="font-bold text-emerald-400">${escapeHtml(m.sender)}:</span>
+                    <span class="text-gray-200">${escapeHtml(m.text)}</span>
+                </div>
+            `).join('');
+
+            container.scrollTop = container.scrollHeight;
+        }
+
+        function escapeHtml(str) {
+            return String(str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        }
+
+        document.getElementById('chat-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const input = document.getElementById('chat-input');
+            const msg = input.value.trim();
+            if (!msg || !db || !currentUser) return;
+
+            input.value = '';
+            try {
+                const chatColl = collection(db, 'artifacts', appId, 'public', 'data', `chat_${currentRoomId}`);
+                await addDoc(chatColl, {
+                    sender: player.name,
+                    text: msg,
+                    time: Date.now()
+                });
+            } catch (err) {
+                console.error("Chat error:", err);
+            }
+        });
+
+        function subscribeToLeaderboard() {
+            if (!db) return;
+            const leaderboardColl = collection(db, 'artifacts', appId, 'public', 'data', 'leaderboard');
+
+            onSnapshot(leaderboardColl, (snapshot) => {
+                const scores = [];
+                snapshot.forEach((doc) => {
+                    const data = doc.data();
+                    if (data && typeof data.score === 'number') {
+                        scores.push({
+                            userId: doc.id,
+                            name: data.name || `Harvester ${doc.id.slice(0, 4)}`,
+                            score: data.score
+                        });
+                    }
+                });
+
+                scores.sort((a, b) => b.score - a.score);
+
+                if (currentUser) {
+                    const myEntry = scores.find(s => s.userId === currentUser.uid);
+                    if (myEntry) {
+                        personalHighScore = Math.max(personalHighScore, myEntry.score);
+                        const hsElem = document.getElementById('hud-high-score');
+                        if (hsElem) hsElem.innerText = personalHighScore;
+                    }
+                }
+
+                renderLeaderboard(scores.slice(0, 5));
+            });
+        }
+
+        function renderLeaderboard(topScores) {
+            const listElem = document.getElementById('lobby-leaderboard');
+            if (!listElem) return;
+
+            if (topScores.length === 0) {
+                listElem.innerHTML = '<div class="text-center text-gray-500 py-1 text-xs">No harvests logged yet. Be first!</div>';
+                return;
+            }
+
+            listElem.innerHTML = topScores.map((entry, index) => {
+                const isMe = currentUser && entry.userId === currentUser.uid;
+                const highlight = isMe ? 'text-emerald-400 font-bold' : '';
+                return `<div class="flex justify-between py-0.5 ${highlight}">
+                    <span>${index + 1}. ${escapeHtml(entry.name)}${isMe ? ' (You)' : ''}</span>
+                    <span>🍎 ${entry.score}</span>
+                </div>`;
+            }).join('');
+        }
+
+        window.saveFirebaseScore = async function(currentScore) {
+            if (currentScore > personalHighScore) {
+                personalHighScore = currentScore;
+                const hsElem = document.getElementById('hud-high-score');
+                if (hsElem) hsElem.innerText = personalHighScore;
+            }
+
+            if (!db || !currentUser) return;
+
+            try {
+                const userDoc = doc(db, 'artifacts', appId, 'public', 'data', 'leaderboard', currentUser.uid);
+                await setDoc(userDoc, {
+                    userId: currentUser.uid,
+                    name: player.name,
+                    score: personalHighScore,
+                    updatedAt: Date.now()
+                }, { merge: true });
+            } catch (err) {
+                console.error("Failed to sync score:", err);
+            }
+        };
+
+        window.addEventListener('beforeunload', () => {
+            if (db && currentUser) {
+                const playerDoc = doc(db, 'artifacts', appId, 'public', 'data', `players_${currentRoomId}`, currentUser.uid);
+                deleteDoc(playerDoc).catch(() => {});
+            }
+        });
+    </script>
+</body>
+</html>
