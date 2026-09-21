@@ -1,1171 +1,745 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="h-full">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Apple Harvest 3D - VHS Edition</title>
-    <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Three.js Library -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <!-- Google Font Inter -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    
-    <style>
-        * {
-            box-sizing: border-box;
-            user-select: none;
-            -webkit-user-select: none;
-            touch-action: manipulation;
-            font-family: 'Inter', system-ui, -apple-system, sans-serif;
-        }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Apple Collector</title>
 
-        body, html {
-            width: 100vw;
-            height: 100vh;
-            margin: 0;
-            padding: 0;
-            overflow: hidden;
-            background-color: #050508;
-            color: #f3f4f6;
-        }
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Three.js Library -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <!-- Google Fonts: VT323 for VHS OSD and Outfit for clean UI -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=VT323&family=Outfit:wght@400;700;900&display=swap" rel="stylesheet">
 
-        /* 4:3 Aspect Ratio Container */
-        #game-wrapper {
-            position: relative;
-            width: 100vw;
-            height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            background: radial-gradient(circle at center, #111827 0%, #030712 100%);
-        }
+  <style>
+    * {
+      user-select: none;
+      -webkit-user-select: none;
+      touch-action: manipulation;
+    }
+    body {
+      font-family: 'VT323', monospace;
+      overflow: hidden;
+      background-color: #050505;
+      color: #fff;
+    }
 
-        #viewport-container {
-            position: relative;
-            width: 100vw;
-            height: 100vh;
-            max-width: calc(100vh * (4 / 3));
-            max-height: calc(100vw * (3 / 4));
-            aspect-ratio: 4 / 3;
-            background-color: #000;
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.95), 0 0 1px 1px rgba(255, 255, 255, 0.1);
-            border-radius: 8px;
-            overflow: hidden;
-        }
+    /* --- VHS Aesthetic Overlay CSS --- */
+    .vhs-font {
+      font-family: 'VT323', monospace;
+      text-shadow: 2px 2px 0px #000, -1px -1px 0px #000, 1px -1px 0px #000, -1px 1px 0px #000;
+      letter-spacing: 2px;
+    }
 
-        #canvas-container {
-            width: 100%;
-            height: 100%;
-            position: absolute;
-            top: 0;
-            left: 0;
-        }
+    /* Scanline effect */
+    .vhs-scanlines {
+      background: linear-gradient(
+        rgba(18, 16, 16, 0) 50%, 
+        rgba(0, 0, 0, 0.35) 50%
+      );
+      background-size: 100% 4px;
+    }
 
-        canvas {
-            width: 100% !important;
-            height: 100% !important;
-            display: block;
-        }
+    /* Vignette dark edges */
+    .vhs-vignette {
+      background: radial-gradient(
+        circle, 
+        rgba(0,0,0,0) 60%, 
+        rgba(0,0,0,0.7) 95%, 
+        rgba(0,0,0,0.95) 100%
+      );
+    }
 
-        /* Minimal Crosshair */
-        #crosshair {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            width: 6px;
-            height: 6px;
-            background-color: rgba(255, 255, 255, 0.85);
-            border-radius: 50%;
-            pointer-events: none;
-            z-index: 10;
-            transition: transform 0.15s ease, background-color 0.15s ease;
-        }
+    /* Chromatic RGB shift effect on canvas wrapper */
+    @keyframes rgbShift {
+      0% { transform: translate(0, 0); filter: drop-shadow(1px 0 0 rgba(255,0,0,0.4)) drop-shadow(-1px 0 0 rgba(0,255,255,0.4)); }
+      50% { transform: translate(-0.5px, 0.5px); filter: drop-shadow(1.5px 0 0 rgba(255,0,0,0.5)) drop-shadow(-1.5px 0 0 rgba(0,255,255,0.5)); }
+      100% { transform: translate(0, 0); filter: drop-shadow(1px 0 0 rgba(255,0,0,0.4)) drop-shadow(-1px 0 0 rgba(0,255,255,0.4)); }
+    }
+    .vhs-rgb-glitch {
+      animation: rgbShift 0.15s infinite;
+    }
 
-        #crosshair.hovering {
-            transform: translate(-50%, -50%) scale(2);
-            background-color: #ffffff;
-            box-shadow: 0 0 10px rgba(255, 255, 255, 0.9);
-        }
+    /* VHS Tracking artifact bar */
+    @keyframes vhsTracking {
+      0% { top: -10%; opacity: 0; }
+      10% { opacity: 0.3; }
+      20% { opacity: 0.6; }
+      30% { opacity: 0.1; }
+      100% { top: 110%; opacity: 0; }
+    }
+    .vhs-tracking-line {
+      position: absolute;
+      left: 0;
+      width: 100%;
+      height: 18px;
+      background: linear-gradient(to bottom, transparent, rgba(255,255,255,0.18), transparent);
+      backdrop-filter: blur(2px) contrast(150%) hue-rotate(90deg);
+      animation: vhsTracking 8s infinite linear;
+      pointer-events: none;
+    }
 
-        /* Glassmorphism Overlays */
-        .glass-panel {
-            background: rgba(15, 23, 42, 0.75);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.12);
-        }
+    /* Blinking PLAY text */
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0; }
+    }
+    .vhs-blink {
+      animation: blink 1.2s step-start infinite;
+    }
 
-        .glass-card {
-            background: rgba(30, 41, 59, 0.5);
-            backdrop-filter: blur(8px);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-        }
+    /* Floating Score Popups */
+    @keyframes floatUp {
+      0% { opacity: 1; transform: translate(-50%, 0) scale(1); }
+      50% { transform: translate(-50%, -25px) scale(1.4); }
+      100% { opacity: 0; transform: translate(-50%, -50px) scale(1); }
+    }
+    .floating-popup {
+      position: absolute;
+      pointer-events: none;
+      font-weight: 900;
+      animation: floatUp 0.8s forwards ease-out;
+      text-shadow: 2px 2px 4px #000;
+    }
 
-        /* Color Picker Radio Active Outline */
-        .color-option input:checked + div {
-            ring: 3px #10b981;
-            transform: scale(1.1);
-        }
-    </style>
+    #webgl-canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+  </style>
 </head>
-<body>
+<body class="h-full w-full select-none overflow-hidden bg-black text-white">
 
-    <div id="game-wrapper">
-        <div id="viewport-container">
-            <!-- 3D WebGL Canvas Target -->
-            <div id="canvas-container"></div>
-
-            <!-- In-Game Interactive HUD -->
-            <div id="hud-layer" class="absolute inset-0 pointer-events-none p-5 flex flex-col justify-between z-10 hidden">
-                <!-- Top HUD Bar -->
-                <div class="flex items-center justify-between">
-                    <div class="glass-panel px-4 py-2 rounded-xl flex items-center gap-4 text-white font-semibold">
-                        <div class="flex items-center gap-2">
-                            <span class="text-2xl">🍎</span>
-                            <span id="hud-apple-count" class="text-xl font-bold text-amber-400">0</span>
-                        </div>
-                        <div class="h-4 w-px bg-white/20"></div>
-                        <div class="text-xs tracking-wider text-gray-300">
-                            BEST: <span id="hud-high-score" class="text-emerald-400 font-bold">0</span>
-                        </div>
-                    </div>
-
-                    <div id="online-badge" class="glass-panel px-3 py-1.5 rounded-full flex items-center gap-2 text-xs font-semibold text-emerald-400">
-                        <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-                        <span id="hud-online-count">1 ONLINE</span>
-                    </div>
-                </div>
-
-                <!-- Center Crosshair Target -->
-                <div id="crosshair"></div>
-            </div>
-
-            <!-- SIMPLIFIED LOBBY PORTAL OVERLAY -->
-            <div id="lobby-portal" class="absolute inset-0 z-20 glass-panel flex flex-col items-center justify-center p-6 overflow-y-auto">
-                <div class="max-w-md w-full flex flex-col items-center gap-6 text-center my-auto">
-                    
-                    <!-- Title Branding -->
-                    <div>
-                        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-semibold uppercase tracking-wider mb-2">
-                            <span>🍏 3D Multiplayer Orchard</span>
-                        </div>
-                        <h1 class="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">APPLE HARVEST</h1>
-                        <p class="text-xs text-gray-400 mt-1">Shake trees, collect golden apples, and harvest together in real time.</p>
-                    </div>
-
-                    <!-- Customization Card -->
-                    <div class="glass-card w-full p-5 rounded-2xl text-left flex flex-col gap-4">
-                        <div class="text-xs font-bold text-gray-300 uppercase tracking-wider">
-                            Enter Your Name
-                        </div>
-
-                        <div>
-                            <label class="block text-xs text-gray-400 mb-1">Display Name</label>
-                            <input id="player-name-input" type="text" maxlength="16" placeholder="Enter Harvester Name" value="Harvester" class="w-full bg-black/50 border border-white/10 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500 transition">
-                        </div>
-
-                        <!-- Harvester Color Selection -->
-                        <div>
-                            <label class="block text-xs text-gray-400 mb-1.5">Outfit Color</label>
-                            <div class="flex items-center justify-between gap-2">
-                                <label class="color-option cursor-pointer">
-                                    <input type="radio" name="outfit-color" value="0x3b82f6" checked class="hidden">
-                                    <div class="w-7 h-7 rounded-full bg-blue-500 border border-white/20 transition"></div>
-                                </label>
-                                <label class="color-option cursor-pointer">
-                                    <input type="radio" name="outfit-color" value="0x10b981" class="hidden">
-                                    <div class="w-7 h-7 rounded-full bg-emerald-500 border border-white/20 transition"></div>
-                                </label>
-                                <label class="color-option cursor-pointer">
-                                    <input type="radio" name="outfit-color" value="0xef4444" class="hidden">
-                                    <div class="w-7 h-7 rounded-full bg-red-500 border border-white/20 transition"></div>
-                                </label>
-                                <label class="color-option cursor-pointer">
-                                    <input type="radio" name="outfit-color" value="0x8b5cf6" class="hidden">
-                                    <div class="w-7 h-7 rounded-full bg-purple-500 border border-white/20 transition"></div>
-                                </label>
-                                <label class="color-option cursor-pointer">
-                                    <input type="radio" name="outfit-color" value="0xf59e0b" class="hidden">
-                                    <div class="w-7 h-7 rounded-full bg-amber-500 border border-white/20 transition"></div>
-                                </label>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Start Game Button -->
-                    <button id="btn-enter-game" class="w-full py-3.5 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white font-bold rounded-2xl shadow-lg shadow-emerald-500/20 text-sm tracking-wide transition transform active:scale-95">
-                        PLAY GAME
-                    </button>
-                    
-                    <p class="text-[11px] text-gray-500">Controls: WASD / Arrows to Walk • Mouse to Look • Left Click or E to Kick Tree</p>
-                </div>
-            </div>
-
-        </div>
+  <!-- -->
+  <div id="game-container" class="relative w-full h-full overflow-hidden">
+    
+    <!-- Three.js Canvas with Chromatic Shift -->
+    <div class="w-full h-full vhs-rgb-glitch">
+      <canvas id="webgl-canvas"></canvas>
     </div>
 
-    <script>
-        let scene, camera, renderer;
-        let renderTarget, postScene, postCamera, vhsMaterial;
-        let clock;
+    <!-- Animated Noise Grain Overlay Canvas -->
+    <canvas id="noise-canvas" class="absolute inset-0 w-full h-full pointer-events-none opacity-[0.12] z-10 mix-blend-screen"></canvas>
 
-        let score = 0;
-        let highScore = 0;
-        let mouseLookEnabled = false;
-        let justPointerLocked = false;
+    <!-- Scanline Filter Layer -->
+    <div class="absolute inset-0 vhs-scanlines pointer-events-none z-10"></div>
 
-        // Player Attributes
-        const PLAYER_HEIGHT = 1.7;
-        const PLAYER_RADIUS = 0.45;
-        const WALK_SPEED = 7.0;
-        const JUMP_VELOCITY = 6.8;
-        const GRAVITY = 19.0;
+    <!-- Vignette Shadow Layer -->
+    <div class="absolute inset-0 vhs-vignette pointer-events-none z-10"></div>
 
-        const player = {
-            name: "Harvester",
-            color: "0x3b82f6",
-            hatStyle: "straw",
-            position: new THREE.Vector3(0, PLAYER_HEIGHT, 0),
-            velocity: new THREE.Vector3(),
-            onGround: true,
-            pitch: 0,
-            yaw: 0,
-            headBobTimer: 0
+    <!-- VHS Animated Tracking Line -->
+    <div class="vhs-tracking-line z-10"></div>
+
+    <!-- HUD (CLEANED OF ALL VCR OSD TEXT & TIMERS) -->
+    <div class="absolute top-0 right-0 pointer-events-none z-20 p-6 vhs-font text-white text-2xl md:text-3xl">
+      <div class="flex items-center gap-2 text-red-400">
+        <span>APPLES:</span>
+        <span id="score-text" class="text-white font-bold text-3xl md:text-4xl">000</span>
+      </div>
+    </div>
+
+    <!-- Crosshair Reticle -->
+    <div id="crosshair" class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none z-20 flex items-center justify-center">
+      <div id="crosshair-dot" class="w-2.5 h-2.5 bg-yellow-300/90 rounded-full border border-black shadow-md transition-all duration-150"></div>
+      <div id="crosshair-ring" class="absolute w-8 h-8 rounded-full border-2 border-emerald-400 scale-50 opacity-0 transition-all duration-150"></div>
+    </div>
+
+    <!-- Floating Score Container -->
+    <div id="floating-container" class="absolute inset-0 pointer-events-none z-30 overflow-hidden"></div>
+
+    <!-- Raycast Harvest Hint -->
+    <div id="pick-prompt" class="absolute top-[58%] left-1/2 -translate-x-1/2 z-20 opacity-0 transition-opacity duration-150 pointer-events-none vhs-font">
+      <div class="text-yellow-300 text-xl md:text-2xl tracking-widest drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)]">
+        [ CLICK OR WALK TO COLLECT ]
+      </div>
+    </div>
+
+    <!-- MINIMAL NO-BACKGROUND MENU OVERLAY -->
+    <div id="start-overlay" class="absolute inset-0 flex flex-col items-center justify-center text-center p-6 select-none cursor-pointer z-50 transition-opacity duration-300 vhs-font">
+      <h1 class="text-6xl md:text-8xl font-black text-white drop-shadow-[0_4px_12px_rgba(0,0,0,0.95)] mb-4 tracking-wider">
+        APPLE COLLECTOR
+      </h1>
+      <p class="text-2xl md:text-4xl text-yellow-300 drop-shadow-[0_4px_8px_rgba(0,0,0,0.95)] mb-6 tracking-widest">
+        CLICK TO START
+      </p>
+      <p class="text-lg md:text-2xl text-slate-200 drop-shadow-[0_2px_6px_rgba(0,0,0,0.95)] tracking-wide">
+        WASD TO MOVE &bull; MOUSE TO LOOK &bull; CLICK OR WALK NEAR APPLES TO COLLECT
+      </p>
+    </div>
+
+  </div>
+
+  <script>
+    // Grain Noise Generator
+    const noiseCanvas = document.getElementById('noise-canvas');
+    const noiseCtx = noiseCanvas.getContext('2d');
+
+    function resizeNoise() {
+      noiseCanvas.width = Math.floor(window.innerWidth / 3);
+      noiseCanvas.height = Math.floor(window.innerHeight / 3);
+    }
+    resizeNoise();
+
+    function renderNoise() {
+      if (noiseCanvas.width > 0 && noiseCanvas.height > 0) {
+        const w = noiseCanvas.width;
+        const h = noiseCanvas.height;
+        const imgData = noiseCtx.createImageData(w, h);
+        const buffer = new Uint32Array(imgData.data.buffer);
+        const len = buffer.length;
+
+        for (let i = 0; i < len; i++) {
+          if (Math.random() < 0.15) {
+            const gray = Math.floor(Math.random() * 255);
+            buffer[i] = (255 << 24) | (gray << 16) | (gray << 8) | gray;
+          }
+        }
+        noiseCtx.putImageData(imgData, 0, 0);
+      }
+      requestAnimationFrame(renderNoise);
+    }
+    renderNoise();
+
+    // Web Audio Sound Engine
+    class SoundEngine {
+      constructor() { this.ctx = null; }
+      init() {
+        if (!this.ctx) {
+          const AudioContext = window.AudioContext || window.webkitAudioContext;
+          this.ctx = new AudioContext();
+        }
+        if (this.ctx.state === 'suspended') { this.ctx.resume(); }
+      }
+      playPickup() {
+        this.init();
+        if (!this.ctx) return;
+        const now = this.ctx.currentTime;
+        const freqs = [523.25, 659.25, 783.99, 1046.50, 1318.51];
+        const freq = freqs[Math.floor(Math.random() * freqs.length)];
+
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(freq, now);
+        osc.frequency.exponentialRampToValueAtTime(freq * 1.5, now + 0.18);
+
+        gain.gain.setValueAtTime(0.25, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
+
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+
+        osc.start(now);
+        osc.stop(now + 0.22);
+      }
+    }
+    const sound = new SoundEngine();
+
+    // Fallback Canvas Textures
+    function createFallbackTexture(type) {
+      const cvs = document.createElement('canvas');
+      cvs.width = 256; cvs.height = 256;
+      const ctx = cvs.getContext('2d');
+
+      if (type === 'grass') {
+        ctx.fillStyle = '#3a7d34'; ctx.fillRect(0, 0, 256, 256);
+        ctx.fillStyle = '#2d6827';
+        for (let i = 0; i < 300; i++) ctx.fillRect(Math.random() * 256, Math.random() * 256, 4, 8);
+      } else if (type === 'sky') {
+        const grad = ctx.createLinearGradient(0, 0, 0, 256);
+        grad.addColorStop(0, '#38bdf8'); grad.addColorStop(1, '#bae6fd');
+        ctx.fillStyle = grad; ctx.fillRect(0, 0, 256, 256);
+      } else if (type === 'bark') {
+        ctx.fillStyle = '#5c3a21'; ctx.fillRect(0, 0, 256, 256);
+        ctx.fillStyle = '#3d2514';
+        for (let i = 0; i < 25; i++) ctx.fillRect(i * 10, 0, 5, 256);
+      } else if (type === 'leaves') {
+        ctx.fillStyle = '#1e5e22'; ctx.fillRect(0, 0, 256, 256);
+        ctx.fillStyle = '#2e8b35';
+        for (let i = 0; i < 200; i++) {
+          ctx.beginPath(); ctx.arc(Math.random() * 256, Math.random() * 256, 10, 0, Math.PI * 2); ctx.fill();
+        }
+      }
+      const tex = new THREE.CanvasTexture(cvs);
+      if (type === 'grass') {
+        tex.wrapS = THREE.RepeatWrapping; tex.wrapT = THREE.RepeatWrapping;
+        tex.repeat.set(40, 40);
+      }
+      return tex;
+    }
+
+    const textureLoader = new THREE.TextureLoader();
+    textureLoader.setCrossOrigin('anonymous');
+
+    // Specified Textures
+    const urls = {
+      grass: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTAMOOJRjx_-XuiE643foSNnd1P7rwOXaF1TmzFH9vtkOnuhjBW_5Gj67gb&s=10',
+      sky: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRHPBSlPjnY4MF8uaT0tyQQvGRfQTeqOUXaRZdF-jZbig&s=10',
+      bark: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQz6joOtuLfpN1-spaMDE9kckRkavj1n3aedD7fbsjmBg&s=10',
+      leaves: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTvEsmd9HrBLUS47LtcIVS_8HF6gjLDcVRDDCBgbZY1ww&s=10'
+    };
+
+    function loadTexture(url, type, configure) {
+      const texture = textureLoader.load(
+        url,
+        (tex) => { if (configure) configure(tex); },
+        undefined,
+        () => {
+          const fallback = createFallbackTexture(type);
+          if (configure) configure(fallback);
+          texture.image = fallback.image;
+          texture.needsUpdate = true;
+        }
+      );
+      if (configure) configure(texture);
+      return texture;
+    }
+
+    const grassTex = loadTexture(urls.grass, 'grass', (t) => {
+      t.wrapS = THREE.RepeatWrapping; t.wrapT = THREE.RepeatWrapping;
+      t.repeat.set(40, 40);
+    });
+    const skyTex = loadTexture(urls.sky, 'sky');
+    const barkTex = loadTexture(urls.bark, 'bark', (t) => {
+      t.wrapS = THREE.RepeatWrapping; t.wrapT = THREE.RepeatWrapping;
+      t.repeat.set(1, 3);
+    });
+    const leavesTex = loadTexture(urls.leaves, 'leaves', (t) => {
+      t.wrapS = THREE.RepeatWrapping; t.wrapT = THREE.RepeatWrapping;
+      t.repeat.set(2, 2);
+    });
+
+    const canvas = document.getElementById('webgl-canvas');
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x87ceeb);
+    scene.fog = new THREE.FogExp2(0x9bd0e8, 0.007);
+
+    const camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.1, 600);
+    camera.rotation.order = 'YXZ'; // Clamp YXZ to prevent gimbal flip
+
+    const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+    // Lighting
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
+    scene.add(ambientLight);
+
+    const hemiLight = new THREE.HemisphereLight(0xffffff, 0x3d5c20, 0.4);
+    hemiLight.position.set(0, 50, 0);
+    scene.add(hemiLight);
+
+    const sunLight = new THREE.DirectionalLight(0xfff8ed, 0.9);
+    sunLight.position.set(60, 90, 40);
+    sunLight.castShadow = true;
+    sunLight.shadow.mapSize.width = 2048;
+    sunLight.shadow.mapSize.height = 2048;
+    const d = 80;
+    sunLight.shadow.camera.left = -d; sunLight.shadow.camera.right = d;
+    sunLight.shadow.camera.top = d; sunLight.shadow.camera.bottom = -d;
+    scene.add(sunLight);
+
+    // Sky Dome
+    const skyGeo = new THREE.SphereGeometry(400, 32, 32);
+    const skyMat = new THREE.MeshBasicMaterial({ map: skyTex, side: THREE.BackSide });
+    const skyMesh = new THREE.Mesh(skyGeo, skyMat);
+    scene.add(skyMesh);
+
+    // Ground Plane
+    const groundGeo = new THREE.PlaneGeometry(300, 300);
+    const groundMat = new THREE.MeshStandardMaterial({ map: grassTex, roughness: 0.9 });
+    const ground = new THREE.Mesh(groundGeo, groundMat);
+    ground.rotation.x = -Math.PI / 2;
+    ground.receiveShadow = true;
+    scene.add(ground);
+
+    const trees = [];
+    const applesList = [];
+    const orchardRadius = 110;
+
+    const trunkGeo = new THREE.CylinderGeometry(0.55, 0.75, 4.5, 8);
+    const trunkMat = new THREE.MeshStandardMaterial({ map: barkTex, roughness: 0.9 });
+    const foliageMat = new THREE.MeshStandardMaterial({ map: leavesTex, roughness: 0.75 });
+
+    const appleBodyGeo = new THREE.SphereGeometry(0.38, 16, 16);
+    appleBodyGeo.scale(1, 0.9, 1);
+    const stemGeo = new THREE.CylinderGeometry(0.02, 0.03, 0.2, 6);
+    const stemMat = new THREE.MeshStandardMaterial({ color: 0x3d2314, roughness: 0.9 });
+    const appleMat = new THREE.MeshStandardMaterial({ color: 0xee1111, roughness: 0.2, metalness: 0.1 });
+
+    function createAppleGroup() {
+      const group = new THREE.Group();
+      const body = new THREE.Mesh(appleBodyGeo, appleMat);
+      body.castShadow = true;
+      group.add(body);
+
+      const stem = new THREE.Mesh(stemGeo, stemMat);
+      stem.position.y = 0.35;
+      group.add(stem);
+
+      return group;
+    }
+
+    function createTree(x, z) {
+      const treeGroup = new THREE.Group();
+      treeGroup.position.set(x, 0, z);
+
+      const trunk = new THREE.Mesh(trunkGeo, trunkMat);
+      trunk.position.y = 2.25;
+      trunk.castShadow = true; trunk.receiveShadow = true;
+      treeGroup.add(trunk);
+
+      const canopyGroup = new THREE.Group();
+      canopyGroup.position.y = 4.8;
+
+      const clusters = [
+        { x: 0, y: 0.4, z: 0, r: 2.2 },
+        { x: -0.9, y: -0.2, z: 0.7, r: 1.6 },
+        { x: 1.0, y: -0.1, z: -0.5, r: 1.6 },
+        { x: 0.5, y: 0.1, z: 0.9, r: 1.5 },
+        { x: -0.7, y: 0.2, z: -0.8, r: 1.5 }
+      ];
+
+      clusters.forEach((c) => {
+        const fGeo = new THREE.SphereGeometry(c.r, 12, 12);
+        const foliage = new THREE.Mesh(fGeo, foliageMat);
+        foliage.position.set(c.x, c.y, c.z);
+        foliage.castShadow = true; foliage.receiveShadow = true;
+        canopyGroup.add(foliage);
+      });
+
+      treeGroup.add(canopyGroup);
+      scene.add(treeGroup);
+
+      const treeData = { x, z, appleSlots: [] };
+      const appleCount = Math.floor(Math.random() * 3) + 4;
+
+      for (let i = 0; i < appleCount; i++) {
+        const angle = Math.random() * Math.PI * 2;
+        const dist = 0.8 + Math.random() * 1.4;
+        const ly = 3.2 + Math.random() * 1.8;
+
+        const worldX = x + Math.cos(angle) * dist;
+        const worldZ = z + Math.sin(angle) * dist;
+
+        const appleGroup = createAppleGroup();
+        appleGroup.position.set(worldX, ly, worldZ);
+        scene.add(appleGroup);
+
+        const appleObj = {
+          mesh: appleGroup,
+          position: appleGroup.position,
+          active: true
         };
 
-        const keys = {};
-
-        // Scene Storage
-        const trees = [];
-        const activeApples = [];
-        const particlePool = [];
-        const remotePlayers = {}; // Dictionary of active remote player meshes
-
-        // Geometries & Shared Materials
-        let appleGeo, redAppleMat, goldenAppleMat, leafParticleGeo, leafParticleMat;
-        let directionalSun, ambientLight, hemisphereLight;
-
-        // Raycasting
-        const raycaster = new THREE.Raycaster();
-        const screenCenter = new THREE.Vector2(0, 0);
-        let hoveredTree = null;
-
-        // VHS Shader Definition
-        const VHSShader = {
-            uniforms: {
-                tDiffuse: { value: null },
-                uTime: { value: 0 },
-                uResolution: { value: new THREE.Vector2() }
-            },
-            vertexShader: `
-                varying vec2 vUv;
-                void main() {
-                    vUv = uv;
-                    gl_Position = vec4(position, 1.0);
-                }
-            `,
-            fragmentShader: `
-                uniform sampler2D tDiffuse;
-                uniform float uTime;
-                uniform vec2 uResolution;
-                varying vec2 vUv;
-
-                float hash(vec2 p) {
-                    p = fract(p * vec2(234.34, 435.345));
-                    p += dot(p, p + 34.23);
-                    return fract(p.x * p.y);
-                }
-
-                vec2 crtCurve(vec2 uv) {
-                    uv = (uv - 0.5) * 2.0;
-                    uv.x *= 1.0 + pow((abs(uv.y) / 5.5), 2.0);
-                    uv.y *= 1.0 + pow((abs(uv.x) / 4.5), 2.0);
-                    uv = (uv / 2.0) + 0.5;
-                    return uv;
-                }
-
-                void main() {
-                    vec2 uv = crtCurve(vUv);
-
-                    if (uv.x < 0.0 || uv.x > 1.0 || uv.y < 0.0 || uv.y > 1.0) {
-                        gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);
-                        return;
-                    }
-
-                    float tapeJitter = sin(uTime * 18.0) * 0.0015;
-                    float lineNoise = step(0.985, sin(uv.y * 80.0 + uTime * 5.0));
-                    uv.x += lineNoise * tapeJitter;
-
-                    float trackingBar = smoothstep(0.08, 0.0, abs(uv.y - fract(uTime * 0.12)));
-                    uv.x += trackingBar * (hash(vec2(uTime, uv.y)) - 0.5) * 0.012;
-
-                    float shift = 0.0025 + trackingBar * 0.005;
-                    float r = texture2D(tDiffuse, vec2(uv.x + shift, uv.y)).r;
-                    float g = texture2D(tDiffuse, uv).g;
-                    float b = texture2D(tDiffuse, vec2(uv.x - shift, uv.y)).b;
-                    vec3 col = vec3(r, g, b);
-
-                    float scanline = sin(uv.y * uResolution.y * 1.2) * 0.07;
-                    col -= scanline;
-
-                    float staticGrain = (hash(uv * uTime * 100.0) - 0.5) * 0.09;
-                    col += staticGrain;
-
-                    col.r *= 1.05;
-                    col.g *= 0.98;
-                    col.b *= 0.92;
-
-                    float vig = uv.x * uv.y * (1.0 - uv.x) * (1.0 - uv.y);
-                    vig = clamp(pow(16.0 * vig, 0.35), 0.0, 1.0);
-                    col *= vig;
-
-                    gl_FragColor = vec4(col, 1.0);
-                }
-            `
-        };
-
-        class AudioEngine {
-            constructor() {
-                this.ctx = null;
-            }
-
-            init() {
-                if (!this.ctx) {
-                    const AudioContext = window.AudioContext || window.webkitAudioContext;
-                    this.ctx = new AudioContext();
-                }
-                if (this.ctx.state === 'suspended') {
-                    this.ctx.resume();
-                }
-            }
-
-            playCollect(isGolden = false) {
-                if (!this.ctx) return;
-                const now = this.ctx.currentTime;
-
-                if (isGolden) {
-                    [523.25, 659.25, 783.99, 1046.50].forEach((freq, idx) => {
-                        const osc = this.ctx.createOscillator();
-                        const gain = this.ctx.createGain();
-                        osc.type = 'triangle';
-                        osc.frequency.setValueAtTime(freq, now + idx * 0.05);
-                        gain.gain.setValueAtTime(0.18, now + idx * 0.05);
-                        gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.05 + 0.22);
-                        osc.connect(gain);
-                        gain.connect(this.ctx.destination);
-                        osc.start(now + idx * 0.05);
-                        osc.stop(now + idx * 0.05 + 0.22);
-                    });
-                } else {
-                    const osc = this.ctx.createOscillator();
-                    const gain = this.ctx.createGain();
-                    osc.type = 'sine';
-                    osc.frequency.setValueAtTime(523.25, now);
-                    osc.frequency.exponentialRampToValueAtTime(880.00, now + 0.12);
-                    gain.gain.setValueAtTime(0.18, now);
-                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.14);
-                    osc.connect(gain);
-                    gain.connect(this.ctx.destination);
-                    osc.start(now);
-                    osc.stop(now + 0.14);
-                }
-            }
-
-            playKick() {
-                if (!this.ctx) return;
-                const now = this.ctx.currentTime;
-                const osc = this.ctx.createOscillator();
-                const gain = this.ctx.createGain();
-                osc.type = 'triangle';
-                osc.frequency.setValueAtTime(110, now);
-                osc.frequency.exponentialRampToValueAtTime(30, now + 0.22);
-                gain.gain.setValueAtTime(0.35, now);
-                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.22);
-                osc.connect(gain);
-                gain.connect(this.ctx.destination);
-                osc.start(now);
-                osc.stop(now + 0.22);
-            }
-
-            playBounce() {
-                if (!this.ctx) return;
-                const now = this.ctx.currentTime;
-                const osc = this.ctx.createOscillator();
-                const gain = this.ctx.createGain();
-                osc.type = 'sine';
-                osc.frequency.setValueAtTime(130, now);
-                osc.frequency.exponentialRampToValueAtTime(45, now + 0.08);
-                gain.gain.setValueAtTime(0.1, now);
-                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
-                osc.connect(gain);
-                gain.connect(this.ctx.destination);
-                osc.start(now);
-                osc.stop(now + 0.08);
-            }
-        }
-
-        const audio = new AudioEngine();
-
-        function initScene() {
-            const container = document.getElementById('canvas-container');
-
-            scene = new THREE.Scene();
-            scene.background = new THREE.Color(0x8ba29a);
-            scene.fog = new THREE.FogExp2(0x8ba29a, 0.035);
-
-            clock = new THREE.Clock();
-
-            camera = new THREE.PerspectiveCamera(70, 4 / 3, 0.1, 180);
-            camera.position.set(0, PLAYER_HEIGHT, 0);
-
-            renderer = new THREE.WebGLRenderer({ antialias: false, powerPreference: "high-performance" });
-            renderer.shadowMap.enabled = true;
-            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-            renderer.outputEncoding = THREE.sRGBEncoding;
-            container.appendChild(renderer.domElement);
-
-            // Post-Processing VHS Render Pipeline
-            renderTarget = new THREE.WebGLRenderTarget(800, 600, {
-                minFilter: THREE.LinearFilter,
-                magFilter: THREE.LinearFilter,
-                format: THREE.RGBAFormat
-            });
-
-            postScene = new THREE.Scene();
-            postCamera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
-
-            vhsMaterial = new THREE.ShaderMaterial({
-                uniforms: VHSShader.uniforms,
-                vertexShader: VHSShader.vertexShader,
-                fragmentShader: VHSShader.fragmentShader
-            });
-            vhsMaterial.uniforms.tDiffuse.value = renderTarget.texture;
-
-            const quad = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), vhsMaterial);
-            postScene.add(quad);
-
-            ambientLight = new THREE.AmbientLight(0xffffff, 0.65);
-            scene.add(ambientLight);
-
-            directionalSun = new THREE.DirectionalLight(0xfff8eb, 0.95);
-            directionalSun.position.set(35, 50, 20);
-            directionalSun.castShadow = true;
-            directionalSun.shadow.mapSize.width = 1024;
-            directionalSun.shadow.mapSize.height = 1024;
-            directionalSun.shadow.camera.near = 0.5;
-            directionalSun.shadow.camera.far = 120;
-            const d = 45;
-            directionalSun.shadow.camera.left = -d;
-            directionalSun.shadow.camera.right = d;
-            directionalSun.shadow.camera.top = d;
-            directionalSun.shadow.camera.bottom = -d;
-            scene.add(directionalSun);
-
-            hemisphereLight = new THREE.HemisphereLight(0x8ba29a, 0x3d6b35, 0.35);
-            scene.add(hemisphereLight);
-
-            initSharedAssets();
-            buildTerrain();
-            buildOrchard();
-
-            onWindowResize();
-            window.addEventListener('resize', onWindowResize);
-        }
-
-        function initSharedAssets() {
-            appleGeo = new THREE.SphereGeometry(0.22, 10, 10);
-            appleGeo.scale(1, 0.92, 1);
-
-            redAppleMat = new THREE.MeshStandardMaterial({ color: 0xd92b2b, roughness: 0.35, metalness: 0.1 });
-            goldenAppleMat = new THREE.MeshStandardMaterial({ color: 0xffd700, roughness: 0.2, metalness: 0.8, emissive: 0x332200 });
-
-            leafParticleGeo = new THREE.PlaneGeometry(0.12, 0.12);
-            leafParticleMat = new THREE.MeshBasicMaterial({ color: 0x52c46c, side: THREE.DoubleSide, transparent: true });
-        }
-
-        function buildTerrain() {
-            const groundGeo = new THREE.PlaneGeometry(140, 140, 1, 1);
-            groundGeo.rotateX(-Math.PI / 2);
-            const groundMat = new THREE.MeshStandardMaterial({ color: 0x43733a, roughness: 0.9 });
-            const ground = new THREE.Mesh(groundGeo, groundMat);
-            ground.receiveShadow = true;
-            scene.add(ground);
-
-            const grassGeo = new THREE.ConeGeometry(0.12, 0.45, 3);
-            const grassMat = new THREE.MeshStandardMaterial({ color: 0x4e8543, roughness: 0.9 });
-            const grassMesh = new THREE.InstancedMesh(grassGeo, grassMat, 450);
-
-            const dummy = new THREE.Object3D();
-            for (let i = 0; i < 450; i++) {
-                dummy.position.set((Math.random() - 0.5) * 120, 0.22, (Math.random() - 0.5) * 120);
-                dummy.rotation.y = Math.random() * Math.PI;
-                dummy.scale.set(1 + Math.random() * 0.4, 1 + Math.random() * 0.5, 1 + Math.random() * 0.4);
-                dummy.updateMatrix();
-                grassMesh.setMatrixAt(i, dummy.matrix);
-            }
-            scene.add(grassMesh);
-        }
-
-        function buildOrchard() {
-            const numTrees = 32;
-            const minTreeDist = 8.0;
-            const treePositions = [];
-
-            for (let i = 0; i < numTrees; i++) {
-                let pos;
-                let attempts = 0;
-                do {
-                    pos = new THREE.Vector3((Math.random() - 0.5) * 105, 0, (Math.random() - 0.5) * 105);
-                    attempts++;
-                } while ((pos.length() < 6 || treePositions.some(p => p.distanceTo(pos) < minTreeDist)) && attempts < 100);
-
-                if (attempts < 100) {
-                    treePositions.push(pos);
-                    createTree(pos.x, pos.z);
-                }
-            }
-        }
-
-        function createTree(x, z) {
-            const treeGroup = new THREE.Group();
-            treeGroup.position.set(x, 0, z);
-
-            const trunkRadius = 0.45;
-            const trunkHeight = 3.6 + Math.random() * 0.7;
-
-            const trunkGeo = new THREE.CylinderGeometry(trunkRadius * 0.8, trunkRadius, trunkHeight, 8);
-            const trunkMat = new THREE.MeshStandardMaterial({ color: 0x52392c, roughness: 0.9 });
-            const trunk = new THREE.Mesh(trunkGeo, trunkMat);
-            trunk.position.y = trunkHeight / 2;
-            trunk.castShadow = true;
-            trunk.receiveShadow = true;
-            treeGroup.add(trunk);
-
-            const canopyGroup = new THREE.Group();
-            canopyGroup.position.y = trunkHeight;
-
-            const leafMat = new THREE.MeshStandardMaterial({ color: 0x2b7346, roughness: 0.7, flatShading: true });
-
-            const clusters = [
-                new THREE.Vector3(0, 1.1, 0),
-                new THREE.Vector3(1.0, 0.5, 0.7),
-                new THREE.Vector3(-1.0, 0.6, -0.7),
-                new THREE.Vector3(0.7, 0.7, -1.0),
-                new THREE.Vector3(-0.7, 0.5, 1.0)
-            ];
-
-            const branchNodes = [];
-
-            clusters.forEach((offset) => {
-                const radius = 1.3 + Math.random() * 0.3;
-                const leafGeo = new THREE.IcosahedronGeometry(radius, 1);
-                const leafMesh = new THREE.Mesh(leafGeo, leafMat);
-                leafMesh.position.copy(offset);
-                leafMesh.castShadow = true;
-                leafMesh.receiveShadow = true;
-                canopyGroup.add(leafMesh);
-
-                branchNodes.push(new THREE.Vector3(x + offset.x * 0.85, trunkHeight + offset.y - 0.35, z + offset.z * 0.85));
-            });
-
-            treeGroup.add(canopyGroup);
-
-            const treeData = {
-                mesh: treeGroup,
-                foliage: canopyGroup,
-                position: new THREE.Vector2(x, z),
-                trunkRadius: trunkRadius,
-                branchNodes: branchNodes,
-                lastShakeTime: 0,
-                originalPos: new THREE.Vector3(x, 0, z)
-            };
-
-            treeGroup.userData = treeData;
-            trees.push(treeData);
-            scene.add(treeGroup);
-
-            branchNodes.forEach(node => {
-                if (Math.random() < 0.75) spawnApple(node, treeData);
-            });
-        }
-
-        function spawnApple(branchPos, treeData) {
-            const isGolden = Math.random() < 0.08;
-            const appleMesh = new THREE.Mesh(appleGeo, isGolden ? goldenAppleMat : redAppleMat);
-            appleMesh.castShadow = true;
-
-            const pos = branchPos.clone().add(new THREE.Vector3(
-                (Math.random() - 0.5) * 0.5,
-                (Math.random() - 0.5) * 0.2,
-                (Math.random() - 0.5) * 0.5
-            ));
-
-            appleMesh.position.copy(pos);
-
-            const appleData = {
-                mesh: appleMesh,
-                tree: treeData,
-                state: 'ON_TREE',
-                velocity: new THREE.Vector3(),
-                isGolden: isGolden,
-                bounceCount: 0
-            };
-
-            appleMesh.userData = appleData;
-            scene.add(appleMesh);
-            activeApples.push(appleData);
-        }
-
-        function createLeafParticles(pos) {
-            for (let i = 0; i < 10; i++) {
-                const p = new THREE.Mesh(leafParticleGeo, leafParticleMat);
-                p.position.copy(pos).add(new THREE.Vector3(
-                    (Math.random() - 0.5) * 1.5,
-                    (Math.random() - 0.5) * 1.0,
-                    (Math.random() - 0.5) * 1.5
-                ));
-                p.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, 0);
-
-                scene.add(p);
-                particlePool.push({
-                    mesh: p,
-                    velocity: new THREE.Vector3((Math.random() - 0.5) * 1.5, -0.8 - Math.random(), (Math.random() - 0.5) * 1.5),
-                    rotSpeed: (Math.random() - 0.5) * 5,
-                    life: 1.0
-                });
-            }
-        }
-
-        function createPlayerAvatarMesh(displayName, outfitColorHex = "0x3b82f6") {
-            const group = new THREE.Group();
-
-            const hexNum = parseInt(outfitColorHex.toString().replace('0x', ''), 16);
-            const bodyGeo = new THREE.CylinderGeometry(0.3, 0.38, 1.1, 10);
-            const bodyMat = new THREE.MeshStandardMaterial({ color: isNaN(hexNum) ? 0x3b82f6 : hexNum, roughness: 0.6 });
-            const body = new THREE.Mesh(bodyGeo, bodyMat);
-            body.position.y = 0.55;
-            body.castShadow = true;
-            group.add(body);
-
-            const headGeo = new THREE.SphereGeometry(0.26, 12, 12);
-            const headMat = new THREE.MeshStandardMaterial({ color: 0xf3d2b3, roughness: 0.8 });
-            const head = new THREE.Mesh(headGeo, headMat);
-            head.position.y = 1.3;
-            head.castShadow = true;
-            group.add(head);
-
-            const brimGeo = new THREE.CylinderGeometry(0.55, 0.55, 0.04, 12);
-            const crownGeo = new THREE.CylinderGeometry(0.28, 0.28, 0.22, 12);
-            const hatMat = new THREE.MeshStandardMaterial({ color: 0xeab308, roughness: 0.7 });
-
-            const brim = new THREE.Mesh(brimGeo, hatMat);
-            brim.position.y = 1.48;
-            group.add(brim);
-
-            const crown = new THREE.Mesh(crownGeo, hatMat);
-            crown.position.y = 1.61;
-            group.add(crown);
-
-            const nameSprite = createNameTagSprite(displayName);
-            nameSprite.position.y = 2.1;
-            group.add(nameSprite);
-
-            scene.add(group);
-            return {
-                group: group,
-                body: body,
-                head: head,
-                nameSprite: nameSprite
-            };
-        }
-
-        function createNameTagSprite(text) {
-            const canvas = document.createElement('canvas');
-            canvas.width = 256;
-            canvas.height = 64;
-            const ctx = canvas.getContext('2d');
-
-            ctx.fillStyle = 'rgba(15, 23, 42, 0.85)';
-            ctx.beginPath();
-            ctx.roundRect(8, 8, 240, 48, 12);
-            ctx.fill();
-            ctx.strokeStyle = 'rgba(255, 255, 255, 0.25)';
-            ctx.lineWidth = 2;
-            ctx.stroke();
-
-            ctx.font = 'bold 20px system-ui, sans-serif';
-            ctx.fillStyle = '#4ade80';
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'middle';
-            ctx.fillText(text, 128, 32);
-
-            const texture = new THREE.CanvasTexture(canvas);
-            const spriteMat = new THREE.SpriteMaterial({ map: texture, transparent: true });
-            const sprite = new THREE.Sprite(spriteMat);
-            sprite.scale.set(2.4, 0.6, 1);
-            return sprite;
-        }
-
-        function setupControls() {
-            let lastUnlockTime = 0;
-
-            document.getElementById('btn-enter-game').addEventListener('click', () => {
-                audio.init();
-
-                const nameInput = document.getElementById('player-name-input').value.trim();
-                player.name = nameInput || "Harvester";
-
-                const colorSelected = document.querySelector('input[name="outfit-color"]:checked');
-                if (colorSelected) player.color = colorSelected.value;
-
-                document.getElementById('lobby-portal').classList.add('hidden');
-                document.getElementById('hud-layer').classList.remove('hidden');
-
-                if (window.initRoomConnection) {
-                    window.initRoomConnection("orchard-main");
-                }
-
-                requestLock();
-            });
-
-            function requestLock() {
-                if (performance.now() - lastUnlockTime < 1000) return;
-                try {
-                    const promise = document.body.requestPointerLock();
-                    if (promise && typeof promise.catch === 'function') {
-                        promise.catch(() => {});
-                    }
-                } catch (e) {}
-            }
-
-            document.addEventListener('pointerlockchange', () => {
-                if (document.pointerLockElement === document.body) {
-                    mouseLookEnabled = true;
-                    justPointerLocked = true;
-                } else {
-                    mouseLookEnabled = false;
-                    lastUnlockTime = performance.now();
-                }
-            });
-
-            document.addEventListener('mousemove', (e) => {
-                if (!mouseLookEnabled) return;
-
-                if (justPointerLocked) {
-                    justPointerLocked = false;
-                    return;
-                }
-
-                if (Math.abs(e.movementX) > 250 || Math.abs(e.movementY) > 250) return;
-
-                const sensitivity = 0.0022;
-                player.yaw -= e.movementX * sensitivity;
-                player.pitch -= e.movementY * sensitivity;
-
-                const maxPitch = (Math.PI / 2) - 0.02;
-                player.pitch = Math.max(-maxPitch, Math.min(maxPitch, player.pitch));
-            });
-
-            window.addEventListener('keydown', (e) => {
-                keys[e.code] = true;
-                if (e.code === 'KeyE' && mouseLookEnabled) {
-                    shakeHoveredTree();
-                }
-            });
-
-            window.addEventListener('keyup', (e) => {
-                keys[e.code] = false;
-            });
-
-            document.addEventListener('mousedown', (e) => {
-                if (e.button === 0 && mouseLookEnabled) {
-                    shakeHoveredTree();
-                }
-            });
-        }
-
-        function updatePlayer(delta) {
-            if (!mouseLookEnabled) return;
-
-            camera.rotation.order = 'YXZ';
-            camera.rotation.y = player.yaw;
-            camera.rotation.x = player.pitch;
-
-            const forward = new THREE.Vector3();
-            camera.getWorldDirection(forward);
-            forward.y = 0;
-            forward.normalize();
-
-            const right = new THREE.Vector3();
-            right.crossVectors(forward, new THREE.Vector3(0, 1, 0)).normalize();
-
-            const moveDir = new THREE.Vector3();
-
-            if (keys['KeyW'] || keys['ArrowUp']) moveDir.add(forward);
-            if (keys['KeyS'] || keys['ArrowDown']) moveDir.sub(forward);
-            if (keys['KeyD'] || keys['ArrowRight']) moveDir.add(right);
-            if (keys['KeyA'] || keys['ArrowLeft']) moveDir.sub(right);
-
-            if (moveDir.lengthSq() > 0) {
-                moveDir.normalize();
-                player.position.addScaledVector(moveDir, WALK_SPEED * delta);
-            }
-
-            const playerPos2D = new THREE.Vector2(player.position.x, player.position.z);
-            trees.forEach(tree => {
-                const dist = playerPos2D.distanceTo(tree.position);
-                const minDist = PLAYER_RADIUS + tree.trunkRadius;
-                if (dist < minDist) {
-                    const pushDir = playerPos2D.clone().sub(tree.position).normalize();
-                    if (pushDir.length() === 0) pushDir.set(1, 0);
-                    const corrected = tree.position.clone().add(pushDir.multiplyScalar(minDist));
-                    player.position.x = corrected.x;
-                    player.position.z = corrected.y;
-                    playerPos2D.copy(corrected);
-                }
-            });
-
-            player.position.x = Math.max(-55, Math.min(55, player.position.x));
-            player.position.z = Math.max(-55, Math.min(55, player.position.z));
-
-            player.velocity.y -= GRAVITY * delta;
-
-            if (keys['Space'] && player.onGround) {
-                player.velocity.y = JUMP_VELOCITY;
-                player.onGround = false;
-            }
-
-            player.position.y += player.velocity.y * delta;
-
-            if (player.position.y <= PLAYER_HEIGHT) {
-                player.position.y = PLAYER_HEIGHT;
-                player.velocity.y = 0;
-                player.onGround = true;
-            }
-
-            if (moveDir.lengthSq() > 0 && player.onGround) {
-                player.headBobTimer += delta * WALK_SPEED * 1.8;
-                camera.position.set(player.position.x, player.position.y + Math.sin(player.headBobTimer) * 0.04, player.position.z);
-            } else {
-                camera.position.copy(player.position);
-            }
-
-            raycaster.setFromCamera(screenCenter, camera);
-            const intersects = raycaster.intersectObjects(trees.map(t => t.mesh), true);
-
-            const crosshair = document.getElementById('crosshair');
-            if (intersects.length > 0 && intersects[0].distance < 6.0) {
-                let obj = intersects[0].object;
-                while (obj.parent && !trees.some(t => t.mesh === obj)) {
-                    obj = obj.parent;
-                }
-                const found = trees.find(t => t.mesh === obj);
-                if (found) {
-                    hoveredTree = found;
-                    crosshair.classList.add('hovering');
-                } else {
-                    hoveredTree = null;
-                    crosshair.classList.remove('hovering');
-                }
-            } else {
-                hoveredTree = null;
-                crosshair.classList.remove('hovering');
-            }
-        }
-
-        function shakeHoveredTree() {
-            if (!hoveredTree) return;
-
-            const now = clock.getElapsedTime();
-            if (now - hoveredTree.lastShakeTime < 0.55) return;
-
-            hoveredTree.lastShakeTime = now;
-            audio.playKick();
-
-            createLeafParticles(hoveredTree.originalPos.clone().add(new THREE.Vector3(0, 3.5, 0)));
-
-            activeApples.forEach(apple => {
-                if (apple.tree === hoveredTree && apple.state === 'ON_TREE') {
-                    dropApple(apple);
-                }
-            });
-        }
-
-        function dropApple(apple) {
-            apple.state = 'FALLING';
-            apple.velocity.set((Math.random() - 0.5) * 0.8, -0.1, (Math.random() - 0.5) * 0.8);
-        }
-
-        function updateApples(delta) {
-            const appleRadius = 0.22;
-            const gravity = 15;
-
-            for (let i = activeApples.length - 1; i >= 0; i--) {
-                const apple = activeApples[i];
-
-                if (apple.state === 'FALLING') {
-                    apple.velocity.y -= gravity * delta;
-                    apple.mesh.position.addScaledVector(apple.velocity, delta);
-
-                    if (apple.mesh.position.y <= appleRadius) {
-                        apple.mesh.position.y = appleRadius;
-                        apple.bounceCount++;
-
-                        if (apple.bounceCount < 2) {
-                            apple.velocity.y = -apple.velocity.y * 0.38;
-                            apple.velocity.x *= 0.6;
-                            apple.velocity.z *= 0.6;
-                            audio.playBounce();
-                        } else {
-                            apple.state = 'ON_GROUND';
-                            apple.velocity.set(0, 0, 0);
-                        }
-                    }
-                }
-
-                if (apple.state === 'ON_GROUND') {
-                    apple.mesh.rotation.y += delta * 1.2;
-                }
-
-                const distToPlayer = apple.mesh.position.distanceTo(player.position);
-                if (distToPlayer < 1.5) {
-                    collectApple(apple, i);
-                }
-            }
-        }
-
-        function collectApple(apple, index) {
-            scene.remove(apple.mesh);
-            activeApples.splice(index, 1);
-
-            audio.playCollect(apple.isGolden);
-            score += apple.isGolden ? 5 : 1;
-            document.getElementById('hud-apple-count').innerText = score;
-
-            if (score > highScore) {
-                highScore = score;
-                document.getElementById('hud-high-score').innerText = highScore;
-            }
-
-            const targetTree = apple.tree;
-            setTimeout(() => {
-                if (targetTree) {
-                    const node = targetTree.branchNodes[Math.floor(Math.random() * targetTree.branchNodes.length)];
-                    spawnApple(node, targetTree);
-                }
-            }, 5000 + Math.random() * 3000);
-        }
-
-        function updateParticles(delta) {
-            for (let i = particlePool.length - 1; i >= 0; i--) {
-                const p = particlePool[i];
-                p.life -= delta;
-                p.mesh.position.addScaledVector(p.velocity, delta);
-                p.mesh.rotation.z += p.rotSpeed * delta;
-                p.mesh.material.opacity = Math.max(0, p.life / 1.0);
-
-                if (p.life <= 0) {
-                    scene.remove(p.mesh);
-                    p.mesh.geometry.dispose();
-                    particlePool.splice(i, 1);
-                }
-            }
-        }
-
-        function updateTreeAnimations() {
-            const now = clock.getElapsedTime();
-            trees.forEach(tree => {
-                const timeSinceShake = now - tree.lastShakeTime;
-                if (timeSinceShake < 0.4) {
-                    const factor = (1.0 - timeSinceShake / 0.4);
-                    tree.foliage.position.x = Math.sin(timeSinceShake * 50) * 0.15 * factor;
-                    tree.foliage.position.z = Math.cos(timeSinceShake * 50) * 0.15 * factor;
-                } else {
-                    tree.foliage.position.set(0, tree.foliage.position.y, 0);
-                }
-            });
-        }
-
-        function updateRemotePlayers(delta) {
-            Object.keys(remotePlayers).forEach(id => {
-                const rp = remotePlayers[id];
-                if (rp && rp.mesh) {
-                    rp.mesh.position.lerp(rp.targetPos, delta * 12);
-                    rp.mesh.rotation.y = THREE.MathUtils.lerp(rp.mesh.rotation.y, rp.targetYaw, delta * 12);
-                }
-            });
-        }
-
-        function onWindowResize() {
-            const viewportContainer = document.getElementById('viewport-container');
-            const w = viewportContainer.clientWidth;
-            const h = viewportContainer.clientHeight;
-
-            camera.aspect = 4 / 3;
-            camera.updateProjectionMatrix();
-
-            renderer.setSize(w, h);
-            renderTarget.setSize(w, h);
-            vhsMaterial.uniforms.uResolution.value.set(w, h);
-        }
-
-        function animate() {
-            requestAnimationFrame(animate);
-
-            const delta = Math.min(clock.getDelta(), 0.05);
-
-            updatePlayer(delta);
-            updateApples(delta);
-            updateParticles(delta);
-            updateTreeAnimations();
-            updateRemotePlayers(delta);
-
-            vhsMaterial.uniforms.uTime.value = clock.getElapsedTime();
-
-            renderer.setRenderTarget(renderTarget);
-            renderer.render(scene, camera);
-
-            renderer.setRenderTarget(null);
-            renderer.render(postScene, postCamera);
-        }
-
-        window.onload = function () {
-            initScene();
-            setupControls();
-            animate();
-        };
-    </script>
-
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, setDoc, deleteDoc, collection, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'apple-harvest-host-hub';
-        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : null;
-
-        let auth = null;
-        let db = null;
-        let currentUser = null;
-        let syncInterval = null;
-
-        if (firebaseConfig) {
-            const app = initializeApp(firebaseConfig);
-            auth = getAuth(app);
-            db = getFirestore(app);
-
-            initAuth();
-        }
-
-        async function initAuth() {
-            try {
-                let userCredential;
-                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                    userCredential = await signInWithCustomToken(auth, __initial_auth_token);
-                } else {
-                    userCredential = await signInAnonymously(auth);
-                }
-                currentUser = userCredential.user;
-            } catch (err) {
-                console.error("Firebase auth error:", err);
-                try {
-                    const userCredential = await signInAnonymously(auth);
-                    currentUser = userCredential.user;
-                } catch (e) {
-                    console.error("Anonymous auth failed:", e);
-                }
-            }
-        }
-
-        window.initRoomConnection = function() {
-            if (!db || !currentUser) return;
-
-            subscribeToPlayers();
-            startPositionSync();
-        };
-
-        function subscribeToPlayers() {
-            if (!db || !currentUser) return;
-            const playersColl = collection(db, 'artifacts', appId, 'public', 'data', 'players_global');
-
-            onSnapshot(playersColl, (snapshot) => {
-                const now = Date.now();
-                const activeUserIds = new Set();
-
-                snapshot.forEach((docSnap) => {
-                    const data = docSnap.data();
-                    const targetId = docSnap.id;
-
-                    if (!data || targetId === currentUser.uid) return;
-
-                    // Filter inactive players (disconnected over 12 seconds ago)
-                    if (data.lastSeen && (now - data.lastSeen > 12000)) return;
-
-                    activeUserIds.add(targetId);
-
-                    if (!remotePlayers[targetId]) {
-                        const displayName = data.name || `Harvester ${targetId.slice(0, 4)}`;
-                        const avatar = createPlayerAvatarMesh(displayName, data.color || "0x3b82f6");
-                        remotePlayers[targetId] = {
-                            mesh: avatar.group,
-                            targetPos: new THREE.Vector3(data.x || 0, (data.y || PLAYER_HEIGHT) - PLAYER_HEIGHT, data.z || 0),
-                            targetYaw: data.yaw || 0
-                        };
-                    } else {
-                        const rp = remotePlayers[targetId];
-                        rp.targetPos.set(data.x || 0, (data.y || PLAYER_HEIGHT) - PLAYER_HEIGHT, data.z || 0);
-                        rp.targetYaw = data.yaw || 0;
-                    }
-                });
-
-                // Cleanup disconnected players
-                Object.keys(remotePlayers).forEach((id) => {
-                    if (!activeUserIds.has(id)) {
-                        if (remotePlayers[id] && remotePlayers[id].mesh) {
-                            scene.remove(remotePlayers[id].mesh);
-                        }
-                        delete remotePlayers[id];
-                    }
-                });
-
-                const countElem = document.getElementById('hud-online-count');
-                if (countElem) {
-                    countElem.innerText = `${activeUserIds.size + 1} ONLINE`;
-                }
-            }, (error) => {
-                console.error("Multiplayer sync error:", error);
-            });
-        }
-
-        function startPositionSync() {
-            if (syncInterval) clearInterval(syncInterval);
-
-            syncInterval = setInterval(() => {
-                if (!db || !currentUser) return;
-
-                const playerDoc = doc(db, 'artifacts', appId, 'public', 'data', 'players_global', currentUser.uid);
-                setDoc(playerDoc, {
-                    userId: currentUser.uid,
-                    name: player.name,
-                    color: player.color,
-                    x: player.position.x,
-                    y: player.position.y,
-                    z: player.position.z,
-                    yaw: player.yaw,
-                    score: score,
-                    lastSeen: Date.now()
-                }, { merge: true }).catch(err => console.error("Position sync error:", err));
-            }, 80);
-        }
-
-        window.addEventListener('beforeunload', () => {
-            if (db && currentUser) {
-                const playerDoc = doc(db, 'artifacts', appId, 'public', 'data', 'players_global', currentUser.uid);
-                deleteDoc(playerDoc).catch(() => {});
-            }
+        appleGroup.children.forEach(child => child.userData.appleObj = appleObj);
+        appleGroup.userData.appleObj = appleObj;
+
+        applesList.push(appleObj);
+        treeData.appleSlots.push(appleObj);
+      }
+
+      trees.push(treeData);
+    }
+
+    // Populate Orchard
+    let spawnedTrees = 0;
+    while (spawnedTrees < 36) {
+      const rad = Math.sqrt(Math.random()) * (orchardRadius - 12) + 12;
+      const angle = Math.random() * Math.PI * 2;
+      const x = Math.cos(angle) * rad;
+      const z = Math.sin(angle) * rad;
+
+      let tooClose = false;
+      for (let t of trees) {
+        if (Math.hypot(x - t.x, z - t.z) < 9.5) { tooClose = true; break; }
+      }
+
+      if (!tooClose) {
+        createTree(x, z);
+        spawnedTrees++;
+      }
+    }
+
+    const particles = [];
+    const particleGeo = new THREE.SphereGeometry(0.09, 8, 8);
+    const particleMat = new THREE.MeshBasicMaterial({ color: 0xff2222 });
+
+    function spawnPickParticles(pos) {
+      for (let i = 0; i < 14; i++) {
+        const p = new THREE.Mesh(particleGeo, particleMat);
+        p.position.copy(pos);
+        scene.add(p);
+
+        particles.push({
+          mesh: p,
+          vel: new THREE.Vector3(
+            (Math.random() - 0.5) * 4.0,
+            Math.random() * 3.5 + 1.2,
+            (Math.random() - 0.5) * 4.0
+          ),
+          life: 0.65
         });
-    </script>
+      }
+    }
+
+    const player = {
+      position: new THREE.Vector3(0, 1.8, 0),
+      velocity: new THREE.Vector3(),
+      moveSpeed: 9.0,
+      radius: 0.6
+    };
+
+    camera.position.copy(player.position);
+
+    const keys = { w: false, a: false, s: false, d: false };
+
+    window.addEventListener('keydown', (e) => {
+      const k = e.key.toLowerCase();
+      if (k === 'w' || e.key === 'ArrowUp') keys.w = true;
+      if (k === 's' || e.key === 'ArrowDown') keys.s = true;
+      if (k === 'a' || e.key === 'ArrowLeft') keys.a = true;
+      if (k === 'd' || e.key === 'ArrowRight') keys.d = true;
+    });
+
+    window.addEventListener('keyup', (e) => {
+      const k = e.key.toLowerCase();
+      if (k === 'w' || e.key === 'ArrowUp') keys.w = false;
+      if (k === 's' || e.key === 'ArrowDown') keys.s = false;
+      if (k === 'a' || e.key === 'ArrowLeft') keys.a = false;
+      if (k === 'd' || e.key === 'ArrowRight') keys.d = false;
+    });
+
+    // FPS Camera Looking
+    const startOverlay = document.getElementById('start-overlay');
+
+    window.addEventListener('mousemove', (e) => {
+      if (document.pointerLockElement !== canvas && document.pointerLockElement !== document.body) return;
+
+      const sensitivity = 0.0022;
+      camera.rotation.y -= e.movementX * sensitivity;
+      camera.rotation.x -= e.movementY * sensitivity;
+
+      const maxPitch = Math.PI / 2 - 0.08;
+      camera.rotation.x = Math.max(-maxPitch, Math.min(maxPitch, camera.rotation.x));
+      camera.rotation.z = 0;
+    });
+
+    document.addEventListener('pointerlockchange', () => {
+      if (document.pointerLockElement === canvas || document.pointerLockElement === document.body) {
+        startOverlay.style.opacity = '0';
+        startOverlay.style.pointerEvents = 'none';
+      } else {
+        startOverlay.style.opacity = '1';
+        startOverlay.style.pointerEvents = 'auto';
+      }
+    });
+
+    startOverlay.addEventListener('click', () => {
+      sound.init();
+      canvas.requestPointerLock();
+    });
+
+    const raycaster = new THREE.Raycaster();
+    const centerPoint = new THREE.Vector2(0, 0);
+    let hoveredApple = null;
+
+    const crosshairDot = document.getElementById('crosshair-dot');
+    const crosshairRing = document.getElementById('crosshair-ring');
+    const pickPrompt = document.getElementById('pick-prompt');
+
+    function checkRaycastHover() {
+      raycaster.setFromCamera(centerPoint, camera);
+      
+      const activeAppleMeshes = [];
+      applesList.forEach(a => {
+        if (a.active) {
+          a.mesh.traverse((child) => { if (child.isMesh) activeAppleMeshes.push(child); });
+        }
+      });
+
+      const intersects = raycaster.intersectObjects(activeAppleMeshes, false);
+
+      if (intersects.length > 0 && intersects[0].distance <= 30.0) {
+        let hitMesh = intersects[0].object;
+        let appleObj = hitMesh.userData.appleObj;
+        while (!appleObj && hitMesh.parent) {
+          hitMesh = hitMesh.parent;
+          appleObj = hitMesh.userData.appleObj;
+        }
+
+        if (appleObj && appleObj.active) {
+          hoveredApple = appleObj;
+          crosshairDot.className = "w-3.5 h-3.5 bg-emerald-400 rounded-full border border-black shadow-lg scale-125 transition-all";
+          crosshairRing.classList.remove('opacity-0', 'scale-50');
+          crosshairRing.classList.add('opacity-100', 'scale-100');
+          pickPrompt.style.opacity = '1';
+          return;
+        }
+      }
+
+      hoveredApple = null;
+      crosshairDot.className = "w-2.5 h-2.5 bg-yellow-300/90 rounded-full border border-black shadow-md transition-all";
+      crosshairRing.classList.add('opacity-0', 'scale-50');
+      crosshairRing.classList.remove('opacity-100', 'scale-100');
+      pickPrompt.style.opacity = '0';
+    }
+
+    let score = 0;
+    const scoreText = document.getElementById('score-text');
+
+    function collectApple(appleObj) {
+      if (!appleObj || !appleObj.active) return;
+
+      appleObj.active = false;
+      appleObj.mesh.visible = false;
+
+      sound.playPickup();
+      spawnPickParticles(appleObj.position);
+
+      score++;
+      scoreText.innerText = String(score).padStart(3, '0');
+
+      showFloatingPlusOne();
+
+      setTimeout(() => {
+        appleObj.active = true;
+        appleObj.mesh.visible = true;
+        appleObj.mesh.scale.set(0.1, 0.1, 0.1);
+
+        let s = 0.1;
+        const growInterval = setInterval(() => {
+          s += 0.15;
+          if (s >= 1.0) {
+            appleObj.mesh.scale.set(1, 1, 1);
+            clearInterval(growInterval);
+          } else {
+            appleObj.mesh.scale.set(s, s, s);
+          }
+        }, 30);
+      }, 3500);
+    }
+
+    function showFloatingPlusOne() {
+      const el = document.createElement('div');
+      el.className = 'floating-popup vhs-font text-yellow-300 text-3xl font-black';
+      el.innerText = '+1';
+      el.style.left = '50%';
+      el.style.top = '46%';
+      document.getElementById('floating-container').appendChild(el);
+
+      setTimeout(() => el.remove(), 800);
+    }
+
+    window.addEventListener('click', () => {
+      if (document.pointerLockElement === canvas || document.pointerLockElement === document.body) {
+        if (hoveredApple) {
+          collectApple(hoveredApple);
+        }
+      }
+    });
+
+    let lastTime = performance.now();
+
+    function animate() {
+      requestAnimationFrame(animate);
+
+      const now = performance.now();
+      const dt = Math.min((now - lastTime) / 1000, 0.1);
+      lastTime = now;
+
+      const isLocked = (document.pointerLockElement === canvas || document.pointerLockElement === document.body);
+
+      if (isLocked) {
+        const forward = new THREE.Vector3();
+        camera.getWorldDirection(forward);
+        forward.y = 0; forward.normalize();
+
+        const right = new THREE.Vector3();
+        right.crossVectors(forward, new THREE.Vector3(0, 1, 0)).normalize();
+
+        const moveVector = new THREE.Vector3();
+        if (keys.w) moveVector.add(forward);
+        if (keys.s) moveVector.sub(forward);
+        if (keys.d) moveVector.add(right);
+        if (keys.a) moveVector.sub(right);
+
+        if (moveVector.lengthSq() > 0) moveVector.normalize();
+
+        const targetVel = moveVector.multiplyScalar(player.moveSpeed);
+        player.velocity.x += (targetVel.x - player.velocity.x) * 14 * dt;
+        player.velocity.z += (targetVel.z - player.velocity.z) * 14 * dt;
+
+        player.position.x += player.velocity.x * dt;
+        player.position.z += player.velocity.z * dt;
+
+        // Tree collisions
+        trees.forEach((t) => {
+          const dx = player.position.x - t.x;
+          const dz = player.position.z - t.z;
+          const dist = Math.hypot(dx, dz);
+          if (dist < player.radius + 0.75) {
+            const angle = Math.atan2(dz, dx);
+            player.position.x = t.x + Math.cos(angle) * (player.radius + 0.75);
+            player.position.z = t.z + Math.sin(angle) * (player.radius + 0.75);
+          }
+        });
+
+        // Outer boundary
+        const pDist = Math.hypot(player.position.x, player.position.z);
+        if (pDist > orchardRadius) {
+          const angle = Math.atan2(player.position.z, player.position.x);
+          player.position.x = Math.cos(angle) * orchardRadius;
+          player.position.z = Math.sin(angle) * orchardRadius;
+        }
+
+        camera.position.set(player.position.x, player.position.y, player.position.z);
+
+        checkRaycastHover();
+
+        // Proximity auto harvest
+        applesList.forEach((a) => {
+          if (a.active) {
+            if (player.position.distanceTo(a.position) <= 2.8) {
+              collectApple(a);
+            }
+          }
+        });
+      }
+
+      // Update pickup particles
+      for (let i = particles.length - 1; i >= 0; i--) {
+        const p = particles[i];
+        p.life -= dt;
+        p.mesh.position.addScaledVector(p.vel, dt);
+        p.vel.y -= 9.8 * dt;
+
+        if (p.life <= 0 || p.mesh.position.y <= 0) {
+          scene.remove(p.mesh);
+          particles.splice(i, 1);
+        }
+      }
+
+      renderer.render(scene, camera);
+    }
+
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      resizeNoise();
+    });
+
+    window.onload = () => {
+      animate();
+    };
+  </script>
 </body>
 </html>
