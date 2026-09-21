@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Apple Harvest 3D - Host & Play Hub</title>
+    <title>Apple Harvest 3D - VHS Edition</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Three.js Library -->
@@ -26,11 +26,11 @@
             margin: 0;
             padding: 0;
             overflow: hidden;
-            background-color: #090d16;
+            background-color: #050508;
             color: #f3f4f6;
         }
 
-        /* 16:9 / 4:3 Dynamic Centered Viewport Container */
+        /* 4:3 Aspect Ratio Container */
         #game-wrapper {
             position: relative;
             width: 100vw;
@@ -49,8 +49,8 @@
             max-height: calc(100vw * (3 / 4));
             aspect-ratio: 4 / 3;
             background-color: #000;
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.8), 0 0 1px 1px rgba(255, 255, 255, 0.1);
-            border-radius: 12px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.95), 0 0 1px 1px rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
             overflow: hidden;
         }
 
@@ -68,7 +68,7 @@
             display: block;
         }
 
-        /* Crosshair */
+        /* Minimal Crosshair */
         #crosshair {
             position: absolute;
             top: 50%;
@@ -103,18 +103,6 @@
             border: 1px solid rgba(255, 255, 255, 0.08);
         }
 
-        /* Chat Overlay Scrollbar */
-        .custom-scroll::-webkit-scrollbar {
-            width: 4px;
-        }
-        .custom-scroll::-webkit-scrollbar-track {
-            background: rgba(0, 0, 0, 0.2);
-        }
-        .custom-scroll::-webkit-scrollbar-thumb {
-            background: rgba(255, 255, 255, 0.2);
-            border-radius: 4px;
-        }
-
         /* Color Picker Radio Active Outline */
         .color-option input:checked + div {
             ring: 3px #10b981;
@@ -144,53 +132,33 @@
                         </div>
                     </div>
 
-                    <div class="flex items-center gap-3 pointer-events-auto">
-                        <div id="online-badge" class="glass-panel px-3 py-1.5 rounded-full flex items-center gap-2 text-xs font-semibold text-emerald-400">
-                            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-                            <span id="hud-online-count">1 ONLINE</span>
-                        </div>
-                        <button id="btn-toggle-chat" class="glass-panel p-2 rounded-xl text-xs font-medium text-gray-200 hover:text-white transition">
-                            💬 Chat
-                        </button>
-                        <button id="btn-open-settings" class="glass-panel p-2 rounded-xl text-xs font-medium text-gray-200 hover:text-white transition">
-                            ⚙️ Host Menu
-                        </button>
+                    <div id="online-badge" class="glass-panel px-3 py-1.5 rounded-full flex items-center gap-2 text-xs font-semibold text-emerald-400">
+                        <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                        <span id="hud-online-count">1 ONLINE</span>
                     </div>
                 </div>
 
                 <!-- Center Crosshair Target -->
                 <div id="crosshair"></div>
-
-                <!-- Bottom Chat Box Overlay -->
-                <div id="chat-overlay" class="pointer-events-auto max-w-sm w-full glass-panel rounded-xl p-3 flex flex-col gap-2 transition-opacity duration-200 opacity-90">
-                    <div id="chat-messages" class="h-28 overflow-y-auto custom-scroll text-xs flex flex-col gap-1.5 text-gray-200">
-                        <div class="text-emerald-400 text-[11px] font-medium">🌐 Connected to Orchard Server. Harvest together!</div>
-                    </div>
-                    <form id="chat-form" class="flex gap-2">
-                        <input id="chat-input" type="text" placeholder="Send message..." maxlength="80" class="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-emerald-500">
-                        <button type="submit" class="bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1.5 rounded-lg text-xs font-medium transition">Send</button>
-                    </form>
-                </div>
             </div>
 
-            <!-- HOSTING & LOBBY PORTAL OVERLAY -->
+            <!-- SIMPLIFIED LOBBY PORTAL OVERLAY -->
             <div id="lobby-portal" class="absolute inset-0 z-20 glass-panel flex flex-col items-center justify-center p-6 overflow-y-auto">
                 <div class="max-w-md w-full flex flex-col items-center gap-6 text-center my-auto">
                     
                     <!-- Title Branding -->
                     <div>
                         <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-semibold uppercase tracking-wider mb-2">
-                            <span>🍏 3D Harvest Server Hub</span>
+                            <span>🍏 3D Multiplayer Orchard</span>
                         </div>
                         <h1 class="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">APPLE HARVEST</h1>
-                        <p class="text-xs text-gray-400 mt-1">Host custom multiplayer servers, shake trees & harvest golden apples with friends!</p>
+                        <p class="text-xs text-gray-400 mt-1">Shake trees, collect golden apples, and harvest together in real time.</p>
                     </div>
 
                     <!-- Customization Card -->
                     <div class="glass-card w-full p-5 rounded-2xl text-left flex flex-col gap-4">
-                        <div class="text-xs font-bold text-gray-300 uppercase tracking-wider flex justify-between items-center">
-                            <span>1. Harvester Profile</span>
-                            <span class="text-[10px] text-emerald-400 font-normal">Real-time Avatar</span>
+                        <div class="text-xs font-bold text-gray-300 uppercase tracking-wider">
+                            Enter Your Name
                         </div>
 
                         <div>
@@ -224,90 +192,14 @@
                                 </label>
                             </div>
                         </div>
-
-                        <!-- Hat Type Selection -->
-                        <div>
-                            <label class="block text-xs text-gray-400 mb-1.5">Hat Style</label>
-                            <select id="hat-style-select" class="w-full bg-black/50 border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-500">
-                                <option value="straw">🌾 Classic Straw Hat</option>
-                                <option value="cap">🧢 Farmer Cap</option>
-                                <option value="crown">👑 Golden Crown</option>
-                                <option value="none">🚫 No Hat</option>
-                            </select>
-                        </div>
                     </div>
 
-                    <!-- Room Host & Join Options -->
-                    <div class="glass-card w-full p-5 rounded-2xl text-left flex flex-col gap-4">
-                        <div class="text-xs font-bold text-gray-300 uppercase tracking-wider">
-                            2. Server Session
-                        </div>
-
-                        <div class="grid grid-cols-2 gap-3">
-                            <div>
-                                <label class="block text-[11px] text-gray-400 mb-1">Room Code / Server</label>
-                                <input id="room-code-input" type="text" maxlength="12" placeholder="global-1" value="orchard-main" class="w-full bg-black/50 border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-500">
-                            </div>
-                            <div>
-                                <label class="block text-[11px] text-gray-400 mb-1">Time of Day</label>
-                                <select id="env-time-select" class="w-full bg-black/50 border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-500">
-                                    <option value="day">☀️ Sunny Noon</option>
-                                    <option value="sunset">🌅 Golden Sunset</option>
-                                    <option value="night">🌙 Moonlight Night</option>
-                                </select>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Global Leaderboard Preview -->
-                    <div class="glass-card w-full p-4 rounded-2xl text-left">
-                        <div class="flex justify-between items-center mb-2">
-                            <span class="text-xs font-bold text-gray-300 uppercase tracking-wider">🏆 Top Harvesters</span>
-                            <span class="text-[10px] text-gray-400">Live Global Sync</span>
-                        </div>
-                        <div id="lobby-leaderboard" class="text-xs flex flex-col gap-1 text-gray-300">
-                            <div class="text-center text-gray-500 py-1 text-xs">Connecting to scores...</div>
-                        </div>
-                    </div>
-
-                    <!-- Start / Join Game Button -->
+                    <!-- Start Game Button -->
                     <button id="btn-enter-game" class="w-full py-3.5 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white font-bold rounded-2xl shadow-lg shadow-emerald-500/20 text-sm tracking-wide transition transform active:scale-95">
-                        ENTER & HOST SERVER
+                        PLAY GAME
                     </button>
                     
-                    <p class="text-[11px] text-gray-500">Controls: WASD to Walk • Mouse to Look • Left Click / E to Kick Tree</p>
-                </div>
-            </div>
-
-            <!-- HOST MENU SETTINGS MODAL -->
-            <div id="host-settings-modal" class="absolute inset-0 z-30 glass-panel flex items-center justify-center p-6 hidden">
-                <div class="max-w-xs w-full glass-card p-5 rounded-2xl flex flex-col gap-4 text-left">
-                    <div class="flex justify-between items-center border-b border-white/10 pb-3">
-                        <h3 class="text-sm font-bold text-white flex items-center gap-2">⚙️ Host Room Settings</h3>
-                        <button id="btn-close-settings" class="text-gray-400 hover:text-white text-base">✕</button>
-                    </div>
-
-                    <div class="flex flex-col gap-3 text-xs">
-                        <div>
-                            <label class="block text-gray-400 mb-1">Retro Shader Filter</label>
-                            <button id="btn-toggle-vhs" class="w-full py-2 bg-emerald-600/30 border border-emerald-500/50 rounded-xl text-emerald-300 font-semibold transition">
-                                VHS Overlay: ON
-                            </button>
-                        </div>
-
-                        <div>
-                            <label class="block text-gray-400 mb-1">Atmosphere preset</label>
-                            <button id="btn-cycle-env" class="w-full py-2 bg-white/5 border border-white/10 hover:bg-white/10 rounded-xl text-white transition">
-                                Cycle Day / Sunset / Night
-                            </button>
-                        </div>
-
-                        <div class="border-t border-white/10 pt-2 flex flex-col gap-2">
-                            <button id="btn-leave-room" class="w-full py-2.5 bg-red-600/80 hover:bg-red-500 text-white font-semibold rounded-xl transition">
-                                Exit Server to Lobby
-                            </button>
-                        </div>
-                    </div>
+                    <p class="text-[11px] text-gray-500">Controls: WASD / Arrows to Walk • Mouse to Look • Left Click or E to Kick Tree</p>
                 </div>
             </div>
 
@@ -315,16 +207,14 @@
     </div>
 
     <script>
-        let scene, camera, renderer, renderTarget;
-        let postScene, postCamera, vhsMaterial;
+        let scene, camera, renderer;
+        let renderTarget, postScene, postCamera, vhsMaterial;
         let clock;
-        let enableVHS = true;
 
         let score = 0;
         let highScore = 0;
         let mouseLookEnabled = false;
         let justPointerLocked = false;
-        let activeRoomCode = "orchard-main";
 
         // Player Attributes
         const PLAYER_HEIGHT = 1.7;
@@ -361,6 +251,80 @@
         const raycaster = new THREE.Raycaster();
         const screenCenter = new THREE.Vector2(0, 0);
         let hoveredTree = null;
+
+        // VHS Shader Definition
+        const VHSShader = {
+            uniforms: {
+                tDiffuse: { value: null },
+                uTime: { value: 0 },
+                uResolution: { value: new THREE.Vector2() }
+            },
+            vertexShader: `
+                varying vec2 vUv;
+                void main() {
+                    vUv = uv;
+                    gl_Position = vec4(position, 1.0);
+                }
+            `,
+            fragmentShader: `
+                uniform sampler2D tDiffuse;
+                uniform float uTime;
+                uniform vec2 uResolution;
+                varying vec2 vUv;
+
+                float hash(vec2 p) {
+                    p = fract(p * vec2(234.34, 435.345));
+                    p += dot(p, p + 34.23);
+                    return fract(p.x * p.y);
+                }
+
+                vec2 crtCurve(vec2 uv) {
+                    uv = (uv - 0.5) * 2.0;
+                    uv.x *= 1.0 + pow((abs(uv.y) / 5.5), 2.0);
+                    uv.y *= 1.0 + pow((abs(uv.x) / 4.5), 2.0);
+                    uv = (uv / 2.0) + 0.5;
+                    return uv;
+                }
+
+                void main() {
+                    vec2 uv = crtCurve(vUv);
+
+                    if (uv.x < 0.0 || uv.x > 1.0 || uv.y < 0.0 || uv.y > 1.0) {
+                        gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);
+                        return;
+                    }
+
+                    float tapeJitter = sin(uTime * 18.0) * 0.0015;
+                    float lineNoise = step(0.985, sin(uv.y * 80.0 + uTime * 5.0));
+                    uv.x += lineNoise * tapeJitter;
+
+                    float trackingBar = smoothstep(0.08, 0.0, abs(uv.y - fract(uTime * 0.12)));
+                    uv.x += trackingBar * (hash(vec2(uTime, uv.y)) - 0.5) * 0.012;
+
+                    float shift = 0.0025 + trackingBar * 0.005;
+                    float r = texture2D(tDiffuse, vec2(uv.x + shift, uv.y)).r;
+                    float g = texture2D(tDiffuse, uv).g;
+                    float b = texture2D(tDiffuse, vec2(uv.x - shift, uv.y)).b;
+                    vec3 col = vec3(r, g, b);
+
+                    float scanline = sin(uv.y * uResolution.y * 1.2) * 0.07;
+                    col -= scanline;
+
+                    float staticGrain = (hash(uv * uTime * 100.0) - 0.5) * 0.09;
+                    col += staticGrain;
+
+                    col.r *= 1.05;
+                    col.g *= 0.98;
+                    col.b *= 0.92;
+
+                    float vig = uv.x * uv.y * (1.0 - uv.x) * (1.0 - uv.y);
+                    vig = clamp(pow(16.0 * vig, 0.35), 0.0, 1.0);
+                    col *= vig;
+
+                    gl_FragColor = vec4(col, 1.0);
+                }
+            `
+        };
 
         class AudioEngine {
             constructor() {
@@ -444,64 +408,12 @@
 
         const audio = new AudioEngine();
 
-        const VHSShader = {
-            uniforms: {
-                tDiffuse: { value: null },
-                uTime: { value: 0 },
-                uResolution: { value: new THREE.Vector2() }
-            },
-            vertexShader: `
-                varying vec2 vUv;
-                void main() {
-                    vUv = uv;
-                    gl_Position = vec4(position, 1.0);
-                }
-            `,
-            fragmentShader: `
-                uniform sampler2D tDiffuse;
-                uniform float uTime;
-                uniform vec2 uResolution;
-                varying vec2 vUv;
-
-                float hash(vec2 p) {
-                    p = fract(p * vec2(234.34, 435.345));
-                    p += dot(p, p + 34.23);
-                    return fract(p.x * p.y);
-                }
-
-                void main() {
-                    vec2 uv = vUv;
-
-                    float jitter = sin(uTime * 14.0 + uv.y * 60.0) * 0.0005;
-                    float lineNoise = step(0.994, sin(uv.y * 110.0 + uTime * 7.0)) * 0.002;
-                    uv.x += jitter + lineNoise;
-
-                    float shift = 0.0015;
-                    float r = texture2D(tDiffuse, vec2(uv.x + shift, uv.y)).r;
-                    float g = texture2D(tDiffuse, uv).g;
-                    float b = texture2D(tDiffuse, vec2(uv.x - shift, uv.y)).b;
-                    vec3 col = vec3(r, g, b);
-
-                    float scanline = sin(uv.y * uResolution.y * 1.4) * 0.03;
-                    col -= scanline;
-
-                    float grain = (hash(uv * uTime * 50.0) - 0.5) * 0.04;
-                    col += grain;
-
-                    float vig = uv.x * uv.y * (1.0 - uv.x) * (1.0 - uv.y);
-                    vig = clamp(pow(16.0 * vig, 0.28), 0.0, 1.0);
-                    col *= mix(0.82, 1.0, vig);
-
-                    gl_FragColor = vec4(col, 1.0);
-                }
-            `
-        };
-
         function initScene() {
             const container = document.getElementById('canvas-container');
 
             scene = new THREE.Scene();
-            setEnvironmentTime('day');
+            scene.background = new THREE.Color(0x8ba29a);
+            scene.fog = new THREE.FogExp2(0x8ba29a, 0.035);
 
             clock = new THREE.Clock();
 
@@ -514,7 +426,8 @@
             renderer.outputEncoding = THREE.sRGBEncoding;
             container.appendChild(renderer.domElement);
 
-            renderTarget = new THREE.WebGLRenderTarget(1024, 768, {
+            // Post-Processing VHS Render Pipeline
+            renderTarget = new THREE.WebGLRenderTarget(800, 600, {
                 minFilter: THREE.LinearFilter,
                 magFilter: THREE.LinearFilter,
                 format: THREE.RGBAFormat
@@ -522,6 +435,7 @@
 
             postScene = new THREE.Scene();
             postCamera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
+
             vhsMaterial = new THREE.ShaderMaterial({
                 uniforms: VHSShader.uniforms,
                 vertexShader: VHSShader.vertexShader,
@@ -558,23 +472,6 @@
 
             onWindowResize();
             window.addEventListener('resize', onWindowResize);
-        }
-
-        function setEnvironmentTime(preset) {
-            if (!scene) return;
-            if (preset === 'sunset') {
-                scene.background = new THREE.Color(0xd97706);
-                scene.fog = new THREE.FogExp2(0xd97706, 0.025);
-                if (directionalSun) directionalSun.color.setHex(0xffedd5);
-            } else if (preset === 'night') {
-                scene.background = new THREE.Color(0x0f172a);
-                scene.fog = new THREE.FogExp2(0x0f172a, 0.035);
-                if (directionalSun) directionalSun.color.setHex(0x93c5fd);
-            } else {
-                scene.background = new THREE.Color(0x8ba29a);
-                scene.fog = new THREE.FogExp2(0x8ba29a, 0.028);
-                if (directionalSun) directionalSun.color.setHex(0xfff8eb);
-            }
         }
 
         function initSharedAssets() {
@@ -741,7 +638,7 @@
             }
         }
 
-        function createPlayerAvatarMesh(displayName, outfitColorHex = "0x3b82f6", hatStyle = "straw") {
+        function createPlayerAvatarMesh(displayName, outfitColorHex = "0x3b82f6") {
             const group = new THREE.Group();
 
             const hexNum = parseInt(outfitColorHex.toString().replace('0x', ''), 16);
@@ -759,31 +656,17 @@
             head.castShadow = true;
             group.add(head);
 
-            if (hatStyle === 'straw') {
-                const brimGeo = new THREE.CylinderGeometry(0.55, 0.55, 0.04, 12);
-                const crownGeo = new THREE.CylinderGeometry(0.28, 0.28, 0.22, 12);
-                const hatMat = new THREE.MeshStandardMaterial({ color: 0xeab308, roughness: 0.7 });
+            const brimGeo = new THREE.CylinderGeometry(0.55, 0.55, 0.04, 12);
+            const crownGeo = new THREE.CylinderGeometry(0.28, 0.28, 0.22, 12);
+            const hatMat = new THREE.MeshStandardMaterial({ color: 0xeab308, roughness: 0.7 });
 
-                const brim = new THREE.Mesh(brimGeo, hatMat);
-                brim.position.y = 1.48;
-                group.add(brim);
+            const brim = new THREE.Mesh(brimGeo, hatMat);
+            brim.position.y = 1.48;
+            group.add(brim);
 
-                const crown = new THREE.Mesh(crownGeo, hatMat);
-                crown.position.y = 1.61;
-                group.add(crown);
-            } else if (hatStyle === 'cap') {
-                const capGeo = new THREE.SphereGeometry(0.28, 10, 10, 0, Math.PI * 2, 0, Math.PI / 2);
-                const capMat = new THREE.MeshStandardMaterial({ color: 0xd97706, roughness: 0.5 });
-                const cap = new THREE.Mesh(capGeo, capMat);
-                cap.position.y = 1.36;
-                group.add(cap);
-            } else if (hatStyle === 'crown') {
-                const crownGeo = new THREE.CylinderGeometry(0.28, 0.22, 0.18, 6);
-                const crownMat = new THREE.MeshStandardMaterial({ color: 0xfacc15, metalness: 0.9, roughness: 0.2 });
-                const crown = new THREE.Mesh(crownGeo, crownMat);
-                crown.position.y = 1.55;
-                group.add(crown);
-            }
+            const crown = new THREE.Mesh(crownGeo, hatMat);
+            crown.position.y = 1.61;
+            group.add(crown);
 
             const nameSprite = createNameTagSprite(displayName);
             nameSprite.position.y = 2.1;
@@ -837,15 +720,11 @@
                 const colorSelected = document.querySelector('input[name="outfit-color"]:checked');
                 if (colorSelected) player.color = colorSelected.value;
 
-                player.hatStyle = document.getElementById('hat-style-select').value;
-                activeRoomCode = document.getElementById('room-code-input').value.trim() || "orchard-main";
-                setEnvironmentTime(document.getElementById('env-time-select').value);
-
                 document.getElementById('lobby-portal').classList.add('hidden');
                 document.getElementById('hud-layer').classList.remove('hidden');
 
                 if (window.initRoomConnection) {
-                    window.initRoomConnection(activeRoomCode);
+                    window.initRoomConnection("orchard-main");
                 }
 
                 requestLock();
@@ -904,35 +783,6 @@
                 if (e.button === 0 && mouseLookEnabled) {
                     shakeHoveredTree();
                 }
-            });
-
-            // Settings Modal Handlers
-            document.getElementById('btn-open-settings').addEventListener('click', () => {
-                document.exitPointerLock();
-                document.getElementById('host-settings-modal').classList.remove('hidden');
-            });
-
-            document.getElementById('btn-close-settings').addEventListener('click', () => {
-                document.getElementById('host-settings-modal').classList.add('hidden');
-            });
-
-            document.getElementById('btn-leave-room').addEventListener('click', () => {
-                document.getElementById('host-settings-modal').classList.add('hidden');
-                document.getElementById('hud-layer').classList.add('hidden');
-                document.getElementById('lobby-portal').classList.remove('hidden');
-            });
-
-            document.getElementById('btn-toggle-vhs').addEventListener('click', () => {
-                enableVHS = !enableVHS;
-                const btn = document.getElementById('btn-toggle-vhs');
-                btn.innerText = `VHS Overlay: ${enableVHS ? 'ON' : 'OFF'}`;
-            });
-
-            document.getElementById('btn-cycle-env').addEventListener('click', () => {
-                const current = document.getElementById('env-time-select').value;
-                const next = current === 'day' ? 'sunset' : current === 'sunset' ? 'night' : 'day';
-                document.getElementById('env-time-select').value = next;
-                setEnvironmentTime(next);
             });
         }
 
@@ -1094,8 +944,9 @@
             score += apple.isGolden ? 5 : 1;
             document.getElementById('hud-apple-count').innerText = score;
 
-            if (window.saveFirebaseScore) {
-                window.saveFirebaseScore(score);
+            if (score > highScore) {
+                highScore = score;
+                document.getElementById('hud-high-score').innerText = highScore;
             }
 
             const targetTree = apple.tree;
@@ -1164,7 +1015,6 @@
             requestAnimationFrame(animate);
 
             const delta = Math.min(clock.getDelta(), 0.05);
-            const time = clock.getElapsedTime();
 
             updatePlayer(delta);
             updateApples(delta);
@@ -1172,18 +1022,13 @@
             updateTreeAnimations();
             updateRemotePlayers(delta);
 
-            vhsMaterial.uniforms.uTime.value = time;
+            vhsMaterial.uniforms.uTime.value = clock.getElapsedTime();
 
-            if (enableVHS) {
-                renderer.setRenderTarget(renderTarget);
-                renderer.render(scene, camera);
+            renderer.setRenderTarget(renderTarget);
+            renderer.render(scene, camera);
 
-                renderer.setRenderTarget(null);
-                renderer.render(postScene, postCamera);
-            } else {
-                renderer.setRenderTarget(null);
-                renderer.render(scene, camera);
-            }
+            renderer.setRenderTarget(null);
+            renderer.render(postScene, postCamera);
         }
 
         window.onload = function () {
@@ -1196,7 +1041,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, setDoc, deleteDoc, collection, onSnapshot, addDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, doc, setDoc, deleteDoc, collection, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'apple-harvest-host-hub';
         const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : null;
@@ -1204,9 +1049,7 @@
         let auth = null;
         let db = null;
         let currentUser = null;
-        let personalHighScore = 0;
         let syncInterval = null;
-        let currentRoomId = "orchard-main";
 
         if (firebaseConfig) {
             const app = initializeApp(firebaseConfig);
@@ -1225,35 +1068,27 @@
                     userCredential = await signInAnonymously(auth);
                 }
                 currentUser = userCredential.user;
-                if (currentUser) {
-                    subscribeToLeaderboard();
-                }
             } catch (err) {
                 console.error("Firebase auth error:", err);
                 try {
                     const userCredential = await signInAnonymously(auth);
                     currentUser = userCredential.user;
-                    if (currentUser) {
-                        subscribeToLeaderboard();
-                    }
                 } catch (e) {
                     console.error("Anonymous auth failed:", e);
                 }
             }
         }
 
-        window.initRoomConnection = function(roomId) {
-            currentRoomId = roomId || "orchard-main";
+        window.initRoomConnection = function() {
             if (!db || !currentUser) return;
 
             subscribeToPlayers();
-            subscribeToChat();
             startPositionSync();
         };
 
         function subscribeToPlayers() {
             if (!db || !currentUser) return;
-            const playersColl = collection(db, 'artifacts', appId, 'public', 'data', `players_${currentRoomId}`);
+            const playersColl = collection(db, 'artifacts', appId, 'public', 'data', 'players_global');
 
             onSnapshot(playersColl, (snapshot) => {
                 const now = Date.now();
@@ -1265,14 +1100,14 @@
 
                     if (!data || targetId === currentUser.uid) return;
 
-                    // Filter inactive players
+                    // Filter inactive players (disconnected over 12 seconds ago)
                     if (data.lastSeen && (now - data.lastSeen > 12000)) return;
 
                     activeUserIds.add(targetId);
 
                     if (!remotePlayers[targetId]) {
                         const displayName = data.name || `Harvester ${targetId.slice(0, 4)}`;
-                        const avatar = createPlayerAvatarMesh(displayName, data.color || "0x3b82f6", data.hatStyle || "straw");
+                        const avatar = createPlayerAvatarMesh(displayName, data.color || "0x3b82f6");
                         remotePlayers[targetId] = {
                             mesh: avatar.group,
                             targetPos: new THREE.Vector3(data.x || 0, (data.y || PLAYER_HEIGHT) - PLAYER_HEIGHT, data.z || 0),
@@ -1285,7 +1120,7 @@
                     }
                 });
 
-                // Cleanup disconnected
+                // Cleanup disconnected players
                 Object.keys(remotePlayers).forEach((id) => {
                     if (!activeUserIds.has(id)) {
                         if (remotePlayers[id] && remotePlayers[id].mesh) {
@@ -1310,12 +1145,11 @@
             syncInterval = setInterval(() => {
                 if (!db || !currentUser) return;
 
-                const playerDoc = doc(db, 'artifacts', appId, 'public', 'data', `players_${currentRoomId}`, currentUser.uid);
+                const playerDoc = doc(db, 'artifacts', appId, 'public', 'data', 'players_global', currentUser.uid);
                 setDoc(playerDoc, {
                     userId: currentUser.uid,
                     name: player.name,
                     color: player.color,
-                    hatStyle: player.hatStyle,
                     x: player.position.x,
                     y: player.position.y,
                     z: player.position.z,
@@ -1326,137 +1160,9 @@
             }, 80);
         }
 
-        function subscribeToChat() {
-            if (!db) return;
-            const chatColl = collection(db, 'artifacts', appId, 'public', 'data', `chat_${currentRoomId}`);
-
-            onSnapshot(chatColl, (snapshot) => {
-                const messages = [];
-                snapshot.forEach((doc) => {
-                    const data = doc.data();
-                    if (data && data.text) {
-                        messages.push(data);
-                    }
-                });
-
-                messages.sort((a, b) => (a.time || 0) - (b.time || 0));
-                renderChat(messages.slice(-20));
-            });
-        }
-
-        function renderChat(messages) {
-            const container = document.getElementById('chat-messages');
-            if (!container) return;
-
-            container.innerHTML = messages.map(m => `
-                <div>
-                    <span class="font-bold text-emerald-400">${escapeHtml(m.sender)}:</span>
-                    <span class="text-gray-200">${escapeHtml(m.text)}</span>
-                </div>
-            `).join('');
-
-            container.scrollTop = container.scrollHeight;
-        }
-
-        function escapeHtml(str) {
-            return String(str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-        }
-
-        document.getElementById('chat-form').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const input = document.getElementById('chat-input');
-            const msg = input.value.trim();
-            if (!msg || !db || !currentUser) return;
-
-            input.value = '';
-            try {
-                const chatColl = collection(db, 'artifacts', appId, 'public', 'data', `chat_${currentRoomId}`);
-                await addDoc(chatColl, {
-                    sender: player.name,
-                    text: msg,
-                    time: Date.now()
-                });
-            } catch (err) {
-                console.error("Chat error:", err);
-            }
-        });
-
-        function subscribeToLeaderboard() {
-            if (!db) return;
-            const leaderboardColl = collection(db, 'artifacts', appId, 'public', 'data', 'leaderboard');
-
-            onSnapshot(leaderboardColl, (snapshot) => {
-                const scores = [];
-                snapshot.forEach((doc) => {
-                    const data = doc.data();
-                    if (data && typeof data.score === 'number') {
-                        scores.push({
-                            userId: doc.id,
-                            name: data.name || `Harvester ${doc.id.slice(0, 4)}`,
-                            score: data.score
-                        });
-                    }
-                });
-
-                scores.sort((a, b) => b.score - a.score);
-
-                if (currentUser) {
-                    const myEntry = scores.find(s => s.userId === currentUser.uid);
-                    if (myEntry) {
-                        personalHighScore = Math.max(personalHighScore, myEntry.score);
-                        const hsElem = document.getElementById('hud-high-score');
-                        if (hsElem) hsElem.innerText = personalHighScore;
-                    }
-                }
-
-                renderLeaderboard(scores.slice(0, 5));
-            });
-        }
-
-        function renderLeaderboard(topScores) {
-            const listElem = document.getElementById('lobby-leaderboard');
-            if (!listElem) return;
-
-            if (topScores.length === 0) {
-                listElem.innerHTML = '<div class="text-center text-gray-500 py-1 text-xs">No harvests logged yet. Be first!</div>';
-                return;
-            }
-
-            listElem.innerHTML = topScores.map((entry, index) => {
-                const isMe = currentUser && entry.userId === currentUser.uid;
-                const highlight = isMe ? 'text-emerald-400 font-bold' : '';
-                return `<div class="flex justify-between py-0.5 ${highlight}">
-                    <span>${index + 1}. ${escapeHtml(entry.name)}${isMe ? ' (You)' : ''}</span>
-                    <span>🍎 ${entry.score}</span>
-                </div>`;
-            }).join('');
-        }
-
-        window.saveFirebaseScore = async function(currentScore) {
-            if (currentScore > personalHighScore) {
-                personalHighScore = currentScore;
-                const hsElem = document.getElementById('hud-high-score');
-                if (hsElem) hsElem.innerText = personalHighScore;
-            }
-
-            if (!db || !currentUser) return;
-
-            try {
-                const userDoc = doc(db, 'artifacts', appId, 'public', 'data', 'leaderboard', currentUser.uid);
-                await setDoc(userDoc, {
-                    userId: currentUser.uid,
-                    name: player.name,
-                    score: personalHighScore,
-                    updatedAt: Date.now()
-                }, { merge: true });
-            } catch (err) {
-                console.error("Failed to sync score:", err);
-            }
-        };
-
         window.addEventListener('beforeunload', () => {
             if (db && currentUser) {
-                const playerDoc = doc(db, 'artifacts', appId, 'public', 'data', `players_${currentRoomId}`, currentUser.uid);
+                const playerDoc = doc(db, 'artifacts', appId, 'public', 'data', 'players_global', currentUser.uid);
                 deleteDoc(playerDoc).catch(() => {});
             }
         });
